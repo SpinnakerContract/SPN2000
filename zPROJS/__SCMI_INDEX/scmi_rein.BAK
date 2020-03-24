@@ -1,0 +1,4 @@
+DO niterein.prg  &&============= call external prg/fxp
+RETURN
+
+
