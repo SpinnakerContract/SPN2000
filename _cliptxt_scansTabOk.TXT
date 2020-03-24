@@ -1,0 +1,33 @@
+
+Processor is Pentium
+File search path: C:\VPM51;C:\VPM51\DATA;C:\VPM51\PRGS;C:\VPM51\FORMS;C:\VPM51\REPORTS;C:\VPM51\MENUS;C:\VPM51\BITMAPS;C:\SPN;C:\SPN\DATA;C:\SPN\MENUS;C:\SPN\PRGS;C:\SPN\REPORTS;C:\SPN\FORMS;C:\SPN\TEMP
+Default directory: C:\SPN
+Print file/device:  
+Work area   =    1
+Margin      =    0
+Decimals    =    2
+Memowidth   =   50
+Typeahead   =   20
+Blocksize   =   64
+Reprocess   =       0
+Refresh     = 0,5 SECONDS
+DDE Timeout =    2000
+DDE Safety  = on
+
+Code page: 1252
+Collating sequence: Machine
+Compiler code page: 1252
+Date format: American
+Macro Hot Key = 
+UDF parameters are passed by: VALUE
+ON KEY LABEL hot keys:
+Textmerge Options
+          Delimiters:  Left = <<  Right = >>
+          Show
+
+Alternate  - off    Blink      - on     Clear      - on     Console    - on     Echo       - off    Fields     - off    Help       - on     Mouse      - on     Optimize   - on     Space      - on     Textmerge  - off 
+ANSI       - off    Brstatus   - off    Color      - on     Cursor     - on     Escape     - on     Fixed      - off    Intensity  - on     Multilocks - off    Print      - off    Status Bar - on     Title      - off 
+Asserts    - off    Carry      - off    Compatible - off    Deleted    - off    Exact      - off    Fullpath   - on     Lock       - off    Near       - off    Readborder - off    Sysmenus   - on     Unique     - off 
+Bell       - on     Century    - on     Confirm    - off    Device     - scrn   Exclusive  - off    Heading    - on     Logerrors  - on     Null       - off    Safety     - on     Talk       - off 
+
+

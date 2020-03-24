@@ -1,0 +1,498 @@
+
+Processor is   Pentium  
+Select area:  25, Table in Use:          C:\NACVFP\CONFIGTD.DBF    Alias:     CONFIGTD
+            Code page:   1252  
+       Lock(s): <none>  
+
+Select area:  24, Table in Use:      F:\NACFOX\INV.DBF    Alias:  INV
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\INV.CDX                              
+            Index tag:   INVCAT                                            Collate: Machine                                  Key: CAT  
+            Index tag:   CRIMPCNT                                          Collate: Machine                                  Key: CRIMP_CNT         For: SUBSTR(desc,1,4)="TERM"       
+            Index tag:   INVDESC                                           Collate: Machine                                  Key: DESC   
+            Index tag:   DESC_NOEXT                                        Collate: Machine                                  Key: DESC+MFG         For: no_ext>0  
+            Index tag:   LASTBUY                                           Collate: Machine                                  Key: DTOC(LASTPURCH,1)            For: no_ext>0  
+            Index tag:   LASTUSE                                           Collate: Machine                                  Key: DTOC(LASTUSED,1)           For: no_ext>0  
+            Index tag:   EXTENDED                                          Collate: Machine                                  Key: EXT_COST        For: ext_cost>0  
+            Index tag:   LVND_EXT                                          Collate: Machine                                  Key: LAST_VEND+STR(EXT_COST,14,2)               For: ext_cost>0  
+            Index tag:   INVLOC                                            Collate: Machine                                  Key: LOC  
+            Index tag:   INVMC_MFG                                         Collate: Machine                                  Key: MCODE+MFG+VCODE          
+            Index tag:   INVMFG                                            Collate: Machine                                  Key: MFG  
+            Index tag:   OUSE                                              Collate: Machine                                  Key: MFG      For: o_tot>0 
+            Index tag:   PUSE                                              Collate: Machine                                  Key: MFG      For: p_tot>0 
+            Index tag:   TERMMFG                                           Collate: Machine                                  Key: MFG      For: SUBSTR(Inv.desc,1,4)=="TERM"       
+            Index tag:   USEABLE                                           Collate: Machine                                  Key: MFG      For: tot_reqd>0.AND.onhand>0      
+            Index tag:   MRB                                               Collate: Machine                                  Key: MRB  
+            Index tag:   INVNAC                                            Collate: Machine                                  Key: NACPART    
+            Index tag:   INVPRINT                                          Collate: Machine                                  Key: NACPART        For: .NOT.EMPTY(nacpart).AND.printed=.F.       
+            Index tag:   NO_EXT                                            Collate: Machine                                  Key: NO_EXT       For: no_ext>0   (Descending)   
+            Index tag:   INVITEM                                           Collate: Machine                                  Key: VCODE+MFG      
+            Index tag:   LOCLUMFG                                          Collate: Machine                                  Key: LEFT(DTOS(LASTUSED),4)+LOC+DTOS(LASTUSED)+MFG                    
+            Index tag:   MFG_LVSL                                          Collate: Machine                                  Key: MFG      For: lvsl
+            Index tag:   MFG_MINSTK                                        Collate: Machine                                  Key: MFG      For: minstock>0   
+            Index tag:   MFG_OH                                            Collate: Machine                                  Key: MFG      For: onhand>0   
+            Memo file:        F:\NACFOX\INV.FPT
+       Lock(s): <none>  
+
+Select area:  23, Table in Use:        F:\NACFOX\MAIN_B.DBF    Alias:    MAIN_B
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\MAIN_B.CDX                           
+            Index tag:   MFG                                               Collate: Machine                                  Key: PART+MFG     
+     Master Index tag:   PART                                              Collate: Machine                                  Key: PART  
+            Index tag:   INVMFG                                            Collate: Machine                                  Key: MFG  
+            Index tag:   CUSTNUM                                           Collate: Machine                                  Key: CUSTNUM         For: .NOT.EMPTY(custnum)      
+            Key range:   A28-017-TT         , A28-017-TT         
+            Memo file:         F:\NACFOX\MAIN_B.FPT
+       Lock(s): <none>  
+
+Select area:  22, Table in Use:         F:\NACFOX\SERLOG.DBF    Alias:     SERLOG3
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\SERLOG.CDX                           
+            Index tag:   FULL_SER                                          Collate: Machine                                  Key: UPPER(FULL_SER)       
+            Index tag:   PART_SER                                          Collate: Machine                                  Key: UPPER(PART+FULL_SER)          
+            Index tag:   C_P_DATE                                          Collate: Machine                                  Key: UPPER(CUSTOMER+PART)+DTOS(DATE)                
+            Index tag:   PART_NSER                                         Collate: Machine                                  Key: UPPER(PART)+STR(SERNUM,14)             (Descending)   
+            Index tag:   LOTNUM                                            Collate: Machine                                  Key: LOTNUM    
+            Index tag:   LOTNUM_SER                                        Collate: Machine                                  Key: UPPER(LOTNUM+FULL_SER)            
+            Index tag:   P_L_S                                             Collate: Machine                                  Key: UPPER(PART+LOTNUM)+STR(SERNUM,14)                
+            Index tag:   PART                                              Collate: Machine                                  Key: UPPER(PART)     
+            Index tag:   CODE_FSER                                         Collate: Machine                                  Key: CODE+FULL_SER        
+       Lock(s): <none>  
+
+Select area:  21, Table in Use:         F:\NACFOX\TESTDAT2.DBF    Alias:      TESTDAT222
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\TESTDAT2.CDX                         
+            Index tag:   PART_NSER                                         Collate: Machine                                  Key: PART+STR(SERNUM,14)         
+       Lock(s): <none>  
+
+Select area:  20, Table in Use:         F:\NACFOX\TESTDAT2.DBF    Alias:     TESTDAT2
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\TESTDAT2.CDX                         
+     Master Index tag:   PART_NSER                                         Collate: Machine                                  Key: PART+STR(SERNUM,14)         
+       Lock(s): <none>  
+
+Select area:  19, Table in Use:         F:\NACFOX\TESTDAT1.DBF    Alias:     TESTDAT1
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\TESTDAT1.CDX                         
+            Index tag:   CODE                                              Collate: Machine                                  Key: CODE   
+            Index tag:   PART                                              Collate: Machine                                  Key: PART  
+            Index tag:   LOT                                               Collate: Machine                                  Key: LOT  
+     Master Index tag:   PART_NSER                                         Collate: Machine                                  Key: PART+STR(SERNUM,14)         
+       Lock(s): <none>  
+
+Select area:  18, Table in Use:        F:\NACFOX\MAIN_M.DBF    Alias:    MAIN_M3
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\MAIN_M.CDX                           
+            Index tag:   PART                                              Collate: Machine                                  Key: PART      For: rev==currrev 
+            Index tag:   CODE                                              Collate: Machine                                  Key: CODE   
+            Index tag:   PARTREV                                           Collate: Machine                                  Key: PART+REV    
+            Index tag:   PARTREVUNQ                                        Collate: Machine                                  Key: PART+REV        For: rev==currrev 
+            Index tag:   TOP_PART                                          Collate: Machine                                  Key: TOP_PART        For: .NOT.EMPTY(top_part)     
+            Memo file:          F:\NACFOX\MAIN_M.FPT
+       Lock(s): <none>  
+
+Select area:  17, Table in Use:        F:\NACFOX\MAIN_M.DBF    Alias:    MAIN_M2
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\MAIN_M.CDX                           
+            Index tag:   PART                                              Collate: Machine                                  Key: PART      For: rev==currrev 
+            Index tag:   CODE                                              Collate: Machine                                  Key: CODE   
+            Index tag:   PARTREV                                           Collate: Machine                                  Key: PART+REV    
+            Index tag:   PARTREVUNQ                                        Collate: Machine                                  Key: PART+REV        For: rev==currrev 
+            Index tag:   TOP_PART                                          Collate: Machine                                  Key: TOP_PART        For: .NOT.EMPTY(top_part)     
+            Memo file:          F:\NACFOX\MAIN_M.FPT
+       Lock(s): <none>  
+
+Select area:  16, Table in Use:          C:\NACVFP\CONFIGLC.DBF    Alias:     CONFIGLC
+            Code page:   1252  
+            Memo file:           C:\NACVFP\CONFIGLC.FPT
+       Lock(s): <none>  
+
+Select area:  15, Table in Use:           F:\NACFOX\CUSTOMER.DBF    Alias:       CUSTOMER
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\CUSTOMER.CDX                         
+            Index tag:   CODE                                              Collate: Machine                                  Key: CODE   
+            Index tag:   COMPANY                                           Collate: Machine                                  Key: COMPANY     
+            Memo file:            F:\NACFOX\CUSTOMER.FPT
+       Lock(s): <none>  
+
+Select area:  14, Table in Use:       F:\NACFOX\PASS.DBF    Alias:   PASS
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\PASS.CDX                             
+            Index tag:   FIRST                                             Collate: Machine                                  Key: FIRST  
+            Index tag:   LAST                                              Collate: Machine                                  Key: LAST  
+            Index tag:   PASS                                              Collate: Machine                                  Key: PASS  
+            Index tag:   EMNEM                                             Collate: Machine                                  Key: EMNEM    
+            Index tag:   FULLNAME                                          Collate: Machine                                  Key: UPPER(ALLTRIM(FIRST)+ALLTRIM(LAST))            
+       Lock(s): <none>  
+
+Select area:  13, Table in Use:         F:\NACFOX\INSPLOG1.DBF    Alias:     INSPLOG12
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\INSPLOG1.CDX                         
+            Index tag:   KEY2SERLOG                                        Collate: Machine                                  Key: KEY2SERLOG      
+       Lock(s): <none>  
+
+Select area:  12, Table in Use:         F:\NACFOX\INSPLOG1.DBF    Alias:     INSPLOG1
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\INSPLOG1.CDX                         
+            Index tag:   KEY2SERLOG                                        Collate: Machine                                  Key: KEY2SERLOG      
+       Lock(s): <none>  
+
+Select area:  11, Table in Use:          C:\NACFOX\CONFLOC.DBF    Alias:      CONFLOC
+            Code page:   1252  
+            Memo file:            C:\NACFOX\CONFLOC.FPT
+       Lock(s): <none>  
+
+Select area:  10, Table in Use:         F:\NACFOX\SERLOG.DBF    Alias:     SERLOG2
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\SERLOG.CDX                           
+            Index tag:   FULL_SER                                          Collate: Machine                                  Key: UPPER(FULL_SER)       
+            Index tag:   PART_SER                                          Collate: Machine                                  Key: UPPER(PART+FULL_SER)          
+            Index tag:   C_P_DATE                                          Collate: Machine                                  Key: UPPER(CUSTOMER+PART)+DTOS(DATE)                
+     Master Index tag:   PART_NSER                                         Collate: Machine                                  Key: UPPER(PART)+STR(SERNUM,14)             (Descending)   
+            Index tag:   LOTNUM                                            Collate: Machine                                  Key: LOTNUM    
+            Index tag:   LOTNUM_SER                                        Collate: Machine                                  Key: UPPER(LOTNUM+FULL_SER)            
+            Index tag:   P_L_S                                             Collate: Machine                                  Key: UPPER(PART+LOTNUM)+STR(SERNUM,14)                
+            Index tag:   PART                                              Collate: Machine                                  Key: UPPER(PART)     
+            Index tag:   CODE_FSER                                         Collate: Machine                                  Key: CODE+FULL_SER        
+       Lock(s): <none>  
+
+Select area:   9, Table in Use:        F:\NACFOX\QGEN.DBF    Alias:    QGEN2
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\QGEN.CDX                             
+            Index tag:   FGI_CUS                                           Collate: Machine                                  Key: CODE       For: fgi>0
+            Index tag:   CU_DA_PN                                          Collate: Machine                                  Key: CODE+DTOC(NEXTSHIP,1)+PART+REV                  For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   CU_PN_PO                                          Collate: Machine                                  Key: CODE+PART+PO           For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   FGISHIP                                           Collate: Machine                                  Key: CODE+PART+PO           For: .NOT.EMPTY(job).AND.bal>0.AND.fgi_ship>0         
+            Index tag:   GENCODE                                           Collate: Machine                                  Key: CODE+PART+REV        
+            Index tag:   GENJCODE                                          Collate: Machine                                  Key: CODE+PART+REV            For: .NOT.EMPTY(job)    
+            Index tag:   QENJCODE                                          Collate: Machine                                  Key: CODE+PART+REV            For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   ACT_RELE                                          Collate: Machine                                  Key: DTOC(ACT_RELE,1)+CODE+PART                 For: act_rele#{  /  /    }
+            Index tag:   DA_CU_PN                                          Collate: Machine                                  Key: DTOC(DDATE1,1)+CODE+PART+REV                  For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   EXPREL                                            Collate: Machine                                  Key: DTOC(EXP_RELE,1)           For: .NOT.EMPTY(exp_rele)     
+            Index tag:   EXPREL3                                           Collate: Machine                                  Key: DTOC(EXP_RELE,1)           For: .NOT.EMPTY(exp_rele).AND.p_status="ENGINEERING    "            
+            Index tag:   EXP_RELE                                          Collate: Machine                                  Key: DTOC(EXP_RELE,1)+CODE+JOB                For: bal>0.AND.exp_rele#{  /  /    }.AND.act_rele={  /  /    }.AND.UPPER(p_status)="STOCK       "    
+            Index tag:   LASTSHIP                                          Collate: Machine                                  Key: DTOC(LAST_SHIP,1)          For: bal=0 
+            Index tag:   NDA_CU_PN                                         Collate: Machine                                  Key: DTOC(NEXTSHIP,1)+CODE+PART+REV                  For: .NOT.EMPTY(job).AND.bal>0.AND.UPPER(p_status)#"EXCESS         "            
+            Index tag:   N_S_QTE                                           Collate: Machine                                  Key: DTOC(NEXTSHIP,1)+QUOTE+PART+REV                   For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   FGI_OH                                            Collate: Machine                                  Key: JOB      For: fgi>0
+            Index tag:   GENJJOB                                           Collate: Machine                                  Key: JOB      For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   GENJOB                                            Collate: Machine                                  Key: JOB  
+            Index tag:   JOBSTOCK                                          Collate: Machine                                  Key: JOB      For: .NOT.EMPTY(job).AND.bal>0.AND."STOCK"$status            
+            Index tag:   QENJJOB                                           Collate: Machine                                  Key: JOB      For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   BAL_0                                             Collate: Machine                                  Key: JOB+DTOC(LAST_SHIP)            For: bal=0 
+            Index tag:   FGI_PRC                                           Collate: Machine                                  Key: PART+REV+CODE            For: fgi>0
+            Index tag:   GENJPART                                          Collate: Machine                                  Key: PART+REV+CODE            For: .NOT.EMPTY(job)    
+            Index tag:   GENPART                                           Collate: Machine                                  Key: PART+REV+CODE        
+            Index tag:   QENJPART                                          Collate: Machine                                  Key: PART+REV+CODE            For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   GENJPO                                            Collate: Machine                                  Key: PO+PART+REV          For: .NOT.EMPTY(job)    
+            Index tag:   GENPO                                             Collate: Machine                                  Key: PO+PART+REV      
+            Index tag:   QENJPO                                            Collate: Machine                                  Key: PO+PART+REV          For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   STAT_JOB                                          Collate: Machine                                  Key: P_STATUS+JOB          For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   GENQUOTE                                          Collate: Machine                                  Key: QUOTE   
+            Index tag:   QENQUOTE                                          Collate: Machine                                  Key: QUOTE+DTOC(NEXTSHIP,1)+CODE+PART+REV                      For: .NOT.EMPTY(job).AND.bal>0      
+            Memo file:          F:\NACFOX\QGEN.FPT
+       Lock(s): <none>  
+
+Select area:   8, Table in Use:          F:\NACFOX\TESTLOG1.DBF    Alias:      TESTLOG12
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\TESTLOG1.CDX                         
+     Master Index tag:   KEY2SERLOG                                        Collate: Machine                                  Key: KEY2SERLOG      
+            Index tag:   PART                                              Collate: Machine                                  Key: PART  
+            Index tag:   LOTNUM                                            Collate: Machine                                  Key: LOTNUM    
+            Index tag:   PART_LOT                                          Collate: Machine                                  Key: PART+LOTNUM       
+       Lock(s): <none>  
+
+Select area:   7, Table in Use:          F:\NACFOX\TESTLOG1.DBF    Alias:     TESTLOG1
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\TESTLOG1.CDX                         
+     Master Index tag:   KEY2SERLOG                                        Collate: Machine                                  Key: KEY2SERLOG      
+            Index tag:   PART                                              Collate: Machine                                  Key: PART  
+            Index tag:   LOTNUM                                            Collate: Machine                                  Key: LOTNUM    
+            Index tag:   PART_LOT                                          Collate: Machine                                  Key: PART+LOTNUM       
+       Lock(s): <none>  
+
+Select area:   6, Table in Use:         F:\NACFOX\FAILCODE.DBF    Alias:     FAILCODE
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\FAILCODE.CDX                         
+     Master Index tag:   SHORT                                             Collate: Machine                                  Key: UPPER(SHORTCODE)         
+            Index tag:   LONG                                              Collate: Machine                                  Key: UPPER(LONGCODE)         
+       Lock(s): <none>  
+
+Select area:   5, Table in Use:         F:\NACFOX\SERLOG.DBF    Alias:     SERLOG
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\SERLOG.CDX                           
+            Index tag:   FULL_SER                                          Collate: Machine                                  Key: UPPER(FULL_SER)       
+            Index tag:   PART_SER                                          Collate: Machine                                  Key: UPPER(PART+FULL_SER)          
+            Index tag:   C_P_DATE                                          Collate: Machine                                  Key: UPPER(CUSTOMER+PART)+DTOS(DATE)                
+            Index tag:   PART_NSER                                         Collate: Machine                                  Key: UPPER(PART)+STR(SERNUM,14)             (Descending)   
+            Index tag:   LOTNUM                                            Collate: Machine                                  Key: LOTNUM    
+            Index tag:   LOTNUM_SER                                        Collate: Machine                                  Key: UPPER(LOTNUM+FULL_SER)            
+            Index tag:   P_L_S                                             Collate: Machine                                  Key: UPPER(PART+LOTNUM)+STR(SERNUM,14)                
+            Index tag:   PART                                              Collate: Machine                                  Key: UPPER(PART)     
+            Index tag:   CODE_FSER                                         Collate: Machine                                  Key: CODE+FULL_SER        
+       Lock(s): <none>  
+
+Currently Selected Table:  
+Select area:   4, Table in Use:        F:\NACFOX\MAIN_M.DBF    Alias:    MAIN_M
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\MAIN_M.CDX                           
+     Master Index tag:   PART                                              Collate: Machine                                  Key: PART      For: rev==currrev 
+            Index tag:   CODE                                              Collate: Machine                                  Key: CODE   
+            Index tag:   PARTREV                                           Collate: Machine                                  Key: PART+REV    
+            Index tag:   PARTREVUNQ                                        Collate: Machine                                  Key: PART+REV        For: rev==currrev 
+            Index tag:   TOP_PART                                          Collate: Machine                                  Key: TOP_PART        For: .NOT.EMPTY(top_part)     
+            Memo file:          F:\NACFOX\MAIN_M.FPT
+       Lock(s): <none>  
+
+Select area:   3, Table in Use:        F:\NACFOX\QGEN.DBF    Alias:    QGEN
+            Code page:   1252  
+  Structural CDX file:   F:\NACFOX\QGEN.CDX                             
+            Index tag:   FGI_CUS                                           Collate: Machine                                  Key: CODE       For: fgi>0
+            Index tag:   CU_DA_PN                                          Collate: Machine                                  Key: CODE+DTOC(NEXTSHIP,1)+PART+REV                  For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   CU_PN_PO                                          Collate: Machine                                  Key: CODE+PART+PO           For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   FGISHIP                                           Collate: Machine                                  Key: CODE+PART+PO           For: .NOT.EMPTY(job).AND.bal>0.AND.fgi_ship>0         
+            Index tag:   GENCODE                                           Collate: Machine                                  Key: CODE+PART+REV        
+            Index tag:   GENJCODE                                          Collate: Machine                                  Key: CODE+PART+REV            For: .NOT.EMPTY(job)    
+            Index tag:   QENJCODE                                          Collate: Machine                                  Key: CODE+PART+REV            For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   ACT_RELE                                          Collate: Machine                                  Key: DTOC(ACT_RELE,1)+CODE+PART                 For: act_rele#{  /  /    }
+            Index tag:   DA_CU_PN                                          Collate: Machine                                  Key: DTOC(DDATE1,1)+CODE+PART+REV                  For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   EXPREL                                            Collate: Machine                                  Key: DTOC(EXP_RELE,1)           For: .NOT.EMPTY(exp_rele)     
+            Index tag:   EXPREL3                                           Collate: Machine                                  Key: DTOC(EXP_RELE,1)           For: .NOT.EMPTY(exp_rele).AND.p_status="ENGINEERING    "            
+            Index tag:   EXP_RELE                                          Collate: Machine                                  Key: DTOC(EXP_RELE,1)+CODE+JOB                For: bal>0.AND.exp_rele#{  /  /    }.AND.act_rele={  /  /    }.AND.UPPER(p_status)="STOCK       "    
+            Index tag:   LASTSHIP                                          Collate: Machine                                  Key: DTOC(LAST_SHIP,1)          For: bal=0 
+            Index tag:   NDA_CU_PN                                         Collate: Machine                                  Key: DTOC(NEXTSHIP,1)+CODE+PART+REV                  For: .NOT.EMPTY(job).AND.bal>0.AND.UPPER(p_status)#"EXCESS         "            
+            Index tag:   N_S_QTE                                           Collate: Machine                                  Key: DTOC(NEXTSHIP,1)+QUOTE+PART+REV                   For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   FGI_OH                                            Collate: Machine                                  Key: JOB      For: fgi>0
+            Index tag:   GENJJOB                                           Collate: Machine                                  Key: JOB      For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   GENJOB                                            Collate: Machine                                  Key: JOB  
+            Index tag:   JOBSTOCK                                          Collate: Machine                                  Key: JOB      For: .NOT.EMPTY(job).AND.bal>0.AND."STOCK"$status            
+            Index tag:   QENJJOB                                           Collate: Machine                                  Key: JOB      For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   BAL_0                                             Collate: Machine                                  Key: JOB+DTOC(LAST_SHIP)            For: bal=0 
+            Index tag:   FGI_PRC                                           Collate: Machine                                  Key: PART+REV+CODE            For: fgi>0
+     Master Index tag:   GENJPART                                          Collate: Machine                                  Key: PART+REV+CODE            For: .NOT.EMPTY(job)    
+            Index tag:   GENPART                                           Collate: Machine                                  Key: PART+REV+CODE        
+            Index tag:   QENJPART                                          Collate: Machine                                  Key: PART+REV+CODE            For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   GENJPO                                            Collate: Machine                                  Key: PO+PART+REV          For: .NOT.EMPTY(job)    
+            Index tag:   GENPO                                             Collate: Machine                                  Key: PO+PART+REV      
+            Index tag:   QENJPO                                            Collate: Machine                                  Key: PO+PART+REV          For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   STAT_JOB                                          Collate: Machine                                  Key: P_STATUS+JOB          For: .NOT.EMPTY(job).AND.bal>0      
+            Index tag:   GENQUOTE                                          Collate: Machine                                  Key: QUOTE   
+            Index tag:   QENQUOTE                                          Collate: Machine                                  Key: QUOTE+DTOC(NEXTSHIP,1)+CODE+PART+REV                      For: .NOT.EMPTY(job).AND.bal>0      
+            Memo file:          F:\NACFOX\QGEN.FPT
+       Lock(s): <none>  
+
+Select area:   1, Table in Use:        C:\SPN\DATA\MTEST.DBF    Alias:    MTEST
+            Code page:   1252  
+       Lock(s): <none>  
+
+Select area:   2, Table in Use:          C:\SPN\DATA\SAVMSEC.DBF    Alias:     MCFSEC
+            Code page:   1252  
+  Structural CDX file:   C:\SPN\DATA\SAVMSEC.CDX                        
+            Index tag:   MENU                                              Collate: Machine                                  Key: SUBSTR(ENCRYPTED,5,18)          
+            Index tag:   FIELD                                             Collate: Machine                                  Key: SUBSTR(ENCRYPTED,5,9)         
+            Index tag:   CONTROL                                           Collate: Machine                                  Key: SUBSTR(ENCRYPTED,5,26)          
+       Lock(s): <none>  
+
+Procedure file: DAVMPRCS.FXP      
+Class libraries: C:\SPN\PROSEC.VCX        ALIAS      PROSEC, C:\VPM51\VPMSEC.VCX        ALIAS      VPMSEC, C:\SPN\PROGEN.VCX        ALIAS      PROGEN, C:\SPN\PROCTRLS.VCX         ALIAS       PROCTRLS, C:\SPN\PROFORMS.VCX         ALIAS        PROFORMS, C:\SPN\PROAPP.VCX        ALIAS      PROAPP, C:\VPM51\VPMGEN.VCX        ALIAS      VPMGEN, C:\VPM51\VPMCTRLS.VCX         ALIAS       VPMCTRLS, C:\VPM51\VPMFORMS.VCX          ALIAS       VPMFORMS, C:\VPM51\VPMAPP.VCX        ALIAS     VPMAPP
+File search path:  C:\SPN;C:\SPN\BITMAPS;C:\SPN\DATA;C:\SPN\FORMS;C:\SPN\MENUS;C:\SPN\PRGS;C:\SPN\REPORTS;C:\SPN\TEMP;C:\SPN\ZPROJS;C:\SPN\ZPROJS\CREATEDESKTOPICON;C:\SPN\ZPROJS\EMAIL_LYDOH_RPT;C:\SPN\ZPROJS\                                                                   
+Default directory: C:\SPN  
+Print file/device:  
+Work area                                            =    4
+Margin                                               =    0
+Decimals                                             =    4
+Memowidth                                            =   50
+Typeahead                                            =   20
+Blocksize                                            =   64
+Reprocess                                            =       0
+Refresh                                              = 0,5 SECONDS     
+DDE Timeout                                          =    2000
+DDE Safety                                           = on 
+
+Code page:      1252
+Collating sequence:      Machine
+Compiler code page:       1252
+Date format:  American  
+Macro Hot Key =   
+UDF parameters are passed by:       VALUE   
+On Error:                                             DO SAVMEEH WITH ERROR(),MESSAGE(),SYS(2018), MESSAGE(1),SYS(16),PROGRAM(),LINENO(),LASTKEY(),VARREAD(), WONTOP()
+On Shutdown:           KEYBOARD '{CTRL+Y}'
+ON KEY LABEL hot keys:     
+ F2                       do SAVMFCT with 'HELP_F2'
+ F4                 *
+ F5                 *
+ F6                 *
+ F7                 *
+ F8                 *
+ F9                 *
+ F10                *
+  ALT+F3                 do SAVMFCT with 'HELP_F3','AF3',.T.
+ F1                      do SAVMFCT with 'HELP_F3','F3',.T.
+ F3                   KEYB "{Ctrl+F4}"
+ F12                    DO FORM sysinfo
+ F11                       DO HardCopy WITH "SCMI"
+Textmerge Options    
+          Delimiters:  Left =  <<  Right =  >>
+          Show  
+
+Alternate                                       - off                                         Fullpath                                        - on                            
+ANSI                                            - off                                         Heading                                         - on                            
+Asserts                                         - off                                         Help                                            - off                           
+Bell                                            - off                                         Intensity                                       - on                            
+Blink                                           - on                                          Lock                                            - off                           
+Brstatus                                        - off                                         Logerrors                                       - on                            
+Carry                                           - off                                         Mouse                                           - on                            
+Century                                         - on                                          Multilocks                                      - on                            
+Clear                                           - on                                          Near                                            - on                            
+Color                                           - on                                          Null                                            - off                           
+Compatible                                      - off                                         Optimize                                        - on                            
+Confirm                                         - on                                          Print                                           - off                           
+Console                                         - on                                          Readborder                                      - off                           
+Cursor                                          - on                                          Safety                                          - off                           
+Deleted                                         - on                                          Space                                           - on                            
+Device                                          - scrn                                        Status Bar                                      - off                           
+Echo                                            - off                                         Sysmenus                                        - on                            
+Escape                                          - off                                         Talk                                            - off                           
+Exact                                           - off                                         Textmerge                                       - off                           
+Exclusive                                       - off                                         Title                                           - off                           
+Fields                                          - off                                         Unique                                          - off                           
+Fixed                                           - off                           
+
+
+
+API library                           Instance Handle   
+c:\spn\foxtools.fll                       268435456
+
+     Function                           Address
+     INITIALIZE                          10001064    Call on load. 
+       UNINITALIZE                       10001078    Call on unload.  
+        MSGBOX                           10001019    
+       REGFN                              100013C0    
+        REGFN32                          100013A2    
+       CALLFN                             100013FC    
+        DRIVETYPE                        1000129E    
+       MKDIR                             10001366    
+       RMDIR                             10001190    
+           GETPROSTRG                    10001276    
+           PUTPROSTRG                    1000133E    
+         FOXTOUCH                         100010CD    
+         RGBCOMP                         1000118B    
+         JUSTFNAME                        100012D5    
+        JUSTSTEM                         10001244    
+       JUSTEXT                           10001172    
+        JUSTPATH                         10001212    
+        JUSTDRIVE                        100010B4    
+          FORCEPATH                       100012CB    
+         FORCEEXT                        1000138E    
+         DEFAULTEXT                      10001109    
+       ADDBS                              100011C2    
+        VALIDPATH                        10001352    
+         CLEANPATH                       100010AF    
+        REDUCE                           10001294    
+        STRFILTER                        10001140    
+        WORDS                             1000117C    
+          WORDNUM                        10001357    
+          NEXTWORD                        100013AC    
+         _EDSETPOS                        1000116D    
+        _EDSKIPLIN                        100012C1    
+          _EDGETPOS                      10001145    
+          _EDGETLPOS                      100010BE    
+          _EDGETLNUM                     10001127    
+        _EDPOSINVI                        1000108C    
+          _EDSTOPOS                      10001069    
+         _EDSTOSEL                       10001325    
+         _EDINSERT                       1000119A    
+          _EDSENDKEY                     10001091    
+         _EDDELETE                       10001334    
+          _EDGETCHAR                     100011AE    
+         _EDGETSTR                       10001230    
+         _EDINDENT                       1000115E    
+           _EDCOMMENT                     1000111D    
+         _EDSELECT                       1000105A    
+        _EDCOPY                          10001208    
+        _EDCUT                            1000130C    
+        _EDPASTE                         10001037    
+         _EDUNDO                          100013D9    
+         _EDREDO                          1000103C    
+           _EDUNDOON                     10001181    
+        _EDACTIVE                        10001307    
+          _EDLASTERR                     10001375    
+         _EDSETENV                       10001046    
+         _EDGETENV                       100011B3    
+         _EDOPENFIL                       1000134D    
+         _EDCLOSEFI                      100010B9    
+         _EDREVERT                       100011A4    
+           _EDPROPERTIES                 100010FF    
+          _EDPROCLIST                    100012E9    
+         GETCLIPDAT                      10001221    
+         GETCLIPFMT                       1000125D    
+       ISCLIPFMT                         10001302    
+          ENUMCLIPFM                     100010F0    
+         REGCLIPFMT                      10001159    
+         SETCLIPDAT                      100011F4    
+        EMPTYCLIP                         1000126C    
+         COUNTCLIPF                      100013B1    
+        OPENCLIP                          1000135C    
+         CLOSECLIP                       10001267    
+         MAINHWND                        10001023    
+          _GETWRECT                       100012DF    
+           _WHTOHWND                     100011B8    
+        _WFINDTITL                        100011CC    
+          _WMAINWIND                     10001168    
+         _FINDWINDO                       100013D4    
+         _FINDWINDP                      1000119F    
+         _WONTOP                         100012E4    
+        _WOPEN                            1000120D    
+         _WSCROLL                        10001163    
+         _WOPENP                         10001028    
+          _WSCROLLP                      100010E6    
+         _WCLOSE                         10001389    
+       _WHIDE                            1000114A    
+         _WSHOW                           100010D7    
+        _WZOOM                           100011A9    
+         _WSELECT                         100012C6    
+          _WSENDBEHI                     100010F5    
+          _WGETPORT                      10001271    
+          _WSETPORT                      10001073    
+        _WMOVE                           100011F9    
+       _WSIZE                             100012DA    
+         _WMOVEP                         100012F8    
+       _WSIZEP                           100010FA    
+       _WTOP                             1000132A    
+         _WBOTTOM                        10001000    
+       _WLEFT                            10001280    
+        _WRIGHT                          10001320    
+         _WHEIGHT                         100010D2    
+        _WWIDTH                          10001118    
+        _WTOPP                            100010C8    
+          _WBOTTOMP                      1000109B    
+        _WLEFTP                          100013A7    
+         _WRIGHTP                        1000106E    
+         _WHEIGHTP                       1000140B    
+         _WWIDTHP                        10001203    
+         _WCLEAR                         10001343    
+           _WCLEARREC                    1000100F    
+           _WCLEARREP                    1000100A    
+           _WPOSCURSO                    10001154    
+           _WPOSCURP                     10001217    
+           _WGETCURSO                    10001339    
+          _WGETCURP                      10001348    
+        _WATTR                           10001262    
+         _WSETATTR                       10001398    
+          _WPUTCHR                       1000101E    
+         _WPUTSTR                        100013F7    
+         _WSETTITLE                      100013E8    
+       _WTITLE                           100011E5    
+         _WFOOTER                        100011EA    
+          GETFILEVERSION                  100011BD    
+          FOXTOOLVER                     1000123A    
+
+
+    Declared DLLs:
+_fpreset                                                 c:\windows\system32\msvcrt20.dll
+GetActiveWindow                                               C:\WINDOWS\system32\USER32.dll
+GetPrivateProfileString   GetPrivStr                        C:\WINDOWS\system32\kernel32.dll
+GetTempPath                                                 C:\WINDOWS\system32\kernel32.dll
+GetWindow                                                     C:\WINDOWS\system32\USER32.dll
+GetWindowText                                                 C:\WINDOWS\system32\USER32.dll
+WritePrivateProfileString  WritePrivStr                      C:\WINDOWS\system32\kernel32.dll
