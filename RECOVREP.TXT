@@ -1,0 +1,2736 @@
+****************************
+C:\SPN\CONFIGLC Recover report - 09/17/2019 11:29:59
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.08 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/17/2019 11:29:59
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/17/2019 15:56:14
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/17/2019 15:56:13
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/17/2019 15:57:10
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/17/2019 15:57:10
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/18/2019 09:29:40
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/18/2019 09:29:38
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/18/2019 12:03:45
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/18/2019 12:03:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/19/2019 07:27:14
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/19/2019 07:27:05
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/19/2019 07:38:38
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/19/2019 07:38:38
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/19/2019 07:40:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/19/2019 07:40:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/19/2019 08:12:42
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/19/2019 08:12:42
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/23/2019 07:14:40
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/23/2019 07:14:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/23/2019 08:56:58
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/23/2019 08:56:58
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/23/2019 09:07:30
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/23/2019 09:07:30
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/23/2019 09:09:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/23/2019 09:09:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/23/2019 09:29:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/23/2019 09:29:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/23/2019 09:43:05
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/23/2019 09:43:05
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/26/2019 09:01:50
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/26/2019 09:01:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/27/2019 07:32:09
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/27/2019 07:32:08
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/30/2019 09:45:51
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/30/2019 09:45:47
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/30/2019 10:02:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/30/2019 10:02:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/30/2019 10:52:52
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/30/2019 10:52:52
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 09/30/2019 13:51:45
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 09/30/2019 13:51:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/01/2019 07:56:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/01/2019 07:56:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/01/2019 13:21:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/01/2019 13:21:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/01/2019 13:44:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/01/2019 13:44:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/01/2019 14:18:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/01/2019 14:18:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/01/2019 14:18:26
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/01/2019 14:18:26
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/03/2019 12:19:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/03/2019 12:19:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/03/2019 15:03:15
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/03/2019 15:03:15
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/04/2019 09:06:04
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/04/2019 09:06:03
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/04/2019 09:40:37
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/04/2019 09:40:37
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/04/2019 09:56:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/04/2019 09:56:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/07/2019 12:30:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/07/2019 12:30:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/08/2019 08:58:17
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/08/2019 08:58:17
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/08/2019 09:21:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/08/2019 09:21:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/08/2019 09:22:39
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/08/2019 09:22:39
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/08/2019 09:39:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/08/2019 09:39:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/09/2019 10:45:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/09/2019 10:45:54
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/09/2019 10:53:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/09/2019 10:53:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/10/2019 05:20:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/10/2019 05:20:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/10/2019 08:15:17
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/10/2019 08:15:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/10/2019 09:54:05
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/10/2019 09:54:05
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/10/2019 09:55:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/10/2019 09:55:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/10/2019 09:59:47
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/10/2019 09:59:47
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/10/2019 10:21:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/10/2019 10:21:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/11/2019 06:46:31
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/11/2019 06:46:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/11/2019 07:01:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/11/2019 07:01:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.06 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/14/2019 06:41:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/14/2019 06:41:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/14/2019 08:41:38
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/14/2019 08:41:38
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/15/2019 09:12:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/15/2019 09:12:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/15/2019 11:52:59
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/15/2019 11:52:59
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/17/2019 06:00:04
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/17/2019 06:00:04
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/21/2019 06:32:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/21/2019 06:32:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/22/2019 08:33:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/22/2019 08:33:51
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.01 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/23/2019 07:08:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/23/2019 07:08:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/31/2019 09:47:09
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/31/2019 09:47:09
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/31/2019 09:48:51
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/31/2019 09:48:51
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 10/31/2019 15:21:54
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 10/31/2019 15:21:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/01/2019 08:15:34
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/01/2019 08:15:33
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/02/2019 12:10:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/02/2019 12:10:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/04/2019 10:28:37
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/04/2019 10:28:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/04/2019 10:53:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/04/2019 10:53:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/05/2019 06:53:06
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/05/2019 06:53:05
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/11/2019 08:27:06
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/11/2019 08:27:02
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 11/21/2019 14:08:50
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 11/21/2019 14:08:43
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/06/2019 06:35:54
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/06/2019 06:35:51
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/06/2019 08:22:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/06/2019 08:22:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/09/2019 15:02:04
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/09/2019 15:02:04
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/10/2019 05:20:24
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/10/2019 05:20:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/10/2019 06:08:42
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.04 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/10/2019 06:08:42
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/10/2019 12:34:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/10/2019 12:34:14
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/18/2019 05:52:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/18/2019 05:52:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/19/2019 12:52:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/19/2019 12:52:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/26/2019 07:40:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/26/2019 07:40:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/26/2019 08:02:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/26/2019 08:02:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 12/27/2019 08:18:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 12/27/2019 08:18:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/03/2020 06:40:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/03/2020 06:40:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/03/2020 06:42:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/03/2020 06:42:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/03/2020 15:27:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.08 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/03/2020 15:27:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/15/2020 10:42:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/15/2020 10:42:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/23/2020 10:40:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/23/2020 10:40:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/24/2020 08:21:45
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/24/2020 08:21:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/27/2020 09:48:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/27/2020 09:48:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/27/2020 11:34:50
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/27/2020 11:34:51
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/31/2020 09:06:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/31/2020 09:06:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 01/31/2020 11:34:15
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 01/31/2020 11:34:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/01/2020 10:13:32
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/01/2020 10:13:32
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/01/2020 10:46:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/01/2020 10:46:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/01/2020 10:49:43
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/01/2020 10:49:43
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/01/2020 10:51:17
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/01/2020 10:51:17
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/03/2020 08:59:45
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/03/2020 08:59:45
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/11/2020 07:24:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/11/2020 07:24:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/11/2020 08:14:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/11/2020 08:14:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/11/2020 08:18:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/11/2020 08:18:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/12/2020 12:08:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/12/2020 12:08:44
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/13/2020 08:30:31
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/13/2020 08:30:31
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 06:45:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 06:45:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 07:32:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 07:32:49
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 08:32:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 08:32:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:07:30
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:07:30
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:10:40
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:10:40
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:12:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:12:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:14:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:14:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.06 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:15:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:15:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:17:54
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:17:54
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:21:01
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:21:01
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:26:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:26:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 12:28:47
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 12:28:47
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 13:37:33
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.11 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 13:37:33
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 13:43:52
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 13:43:52
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 13:58:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 13:58:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 14:04:15
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 14:04:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 14:05:06
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 14:05:06
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 15:35:39
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 15:35:39
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/14/2020 15:39:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/14/2020 15:39:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 06:43:01
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.19 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 06:43:01
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 09:23:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 09:23:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 09:25:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 09:25:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 09:34:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 09:34:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 09:38:22
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 09:38:22
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 09:49:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 09:49:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 09:50:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 09:50:16
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 10:06:32
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 10:06:32
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 10:11:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 10:11:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 12:35:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 12:35:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 12:42:24
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 12:42:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 12:55:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 12:55:35
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 13:38:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 13:38:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.05 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/17/2020 13:45:18
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/17/2020 13:45:18
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 06:31:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.09 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 06:31:00
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 07:44:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 07:44:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 07:48:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 07:48:36
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 13:06:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 13:06:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 13:09:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 13:09:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 13:10:22
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 13:10:22
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 13:13:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 13:13:24
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 13:19:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 13:19:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 13:22:07
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 13:22:07
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 14:07:31
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 14:07:31
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 14:09:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 14:09:48
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 14:11:07
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 14:11:07
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/18/2020 15:42:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/18/2020 15:42:56
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 06:57:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.11 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 06:57:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 06:59:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 06:59:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 07:27:22
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 07:27:22
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 07:28:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 07:28:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 07:29:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 07:29:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 07:47:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 07:47:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 10:59:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 10:59:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 11:03:58
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 11:03:58
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/19/2020 11:10:15
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/19/2020 11:10:15
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/26/2020 07:01:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/26/2020 07:01:20
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 02/27/2020 03:40:57
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 02/27/2020 03:40:57
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 07:59:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 07:59:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 08:18:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.08 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 08:18:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 08:51:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 08:51:23
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 08:54:26
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.08 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 08:54:26
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 09:00:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 09:00:27
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 09:29:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 09:29:55
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 11:20:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 11:20:53
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 11:23:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 11:23:28
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 11:25:42
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.08 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 11:25:42
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 12:22:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.06 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 12:22:19
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 12:22:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 12:22:29
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 12:28:46
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 12:28:47
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 12:31:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 12:31:25
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 14:00:13
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 14:00:13
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/03/2020 15:04:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/03/2020 15:04:11
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/04/2020 07:38:58
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.16 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/04/2020 07:38:58
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/04/2020 07:41:08
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/04/2020 07:41:08
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/04/2020 08:03:26
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/04/2020 08:03:26
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.
+****************************
+C:\SPN\CONFIGLC Recover report - 03/13/2020 10:19:40
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.03 seconds.
+****************************
+C:\SPN\DATA\CONFIGAV Recover report - 03/13/2020 10:19:40
+
+** DBF file: 
+.No DBF errors found!
+** Memofile: 
+No memo errors found!
+0.02 seconds.

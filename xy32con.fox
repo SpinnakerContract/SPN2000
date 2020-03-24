@@ -1,0 +1,58 @@
+*
+*  XYM32 Constants
+*
+
+#define XY_IDLE  0
+
+*  XYMER error codes
+
+#define XY_NO_ERROR  0
+#define XY_UNKNOWN_ERROR  -300
+#define XY_ALREADY_ACTIVE_ERROR  -301
+#define XY_CANNOT_OPEN_ERROR  -302
+#define XY_EMPTY_FILE_ERROR  -303
+#define XY_NO_STARTUP_CHAR_ERROR  -304
+#define XY_NOT_NCG_ERROR  -305
+#define XY_DISK_READ_ERROR  -306
+#define XY_NO_EOT_ACK_ERROR  -307
+#define XY_INTERNAL_ERROR  -308
+#define XY_CANCELLED_ERROR  -309
+#define XY_OUT_OF_SYNC_ERROR  -310
+#define XY_RETRIES_ERROR  -311
+#define XY_BAD_PACKET_NBR_ERROR  -312
+#define XY_TIMED_OUT_ERROR  -313
+#define XY_NO_SUCH_FILE_ERROR  -314
+#define XY_NOT_ACTIVE_ERROR  -315
+#define XY_PORT_RANGE_ERROR  -316
+#define XY_DISK_WRITE_ERROR  -317
+#define XY_ABORTED_ERROR  -318
+#define XY_MEMORY_ERROR  -319
+#define XY_SHORT_PACKET  -320
+
+*  xyGetParameter commands
+
+#define XY_GET_ERROR_CODE  0
+#define XY_GET_ERROR_STATE  1
+#define XY_GET_PACKET  2
+#define XY_GET_STATE  3
+#define XY_GET_FILE_SIZE  4
+#define XY_GET_NBR_NAKS  5
+#define XY_GET_DEBUG  6
+#define XY_GET_LAST_GET  7
+#define XY_GET_LAST_PUT  8
+#define XY_GET_GET_COUNT  9
+#define XY_GET_PUT_COUNT  10
+#define XY_GET_DRIVER_COUNT  11
+#define XY_GET_VERSION  12
+#define XY_GET_BUILD  13
+#define XY_GET_SHORT_PACKETS 14
+#define XY_GET_PACKETS_ACKED 15
+
+*  xySetParameter commands
+
+#define XY_SET_NAK_RATE      52
+#define XY_SET_EOF_CHAR      53
+#define XY_SET_STARTUP_WAIT  54
+#define XY_SET_ONE_SECOND    55
+#define XY_SET_FILES_DIR     58
+#define XY_SET_TIMEOUT_WAIT  60
