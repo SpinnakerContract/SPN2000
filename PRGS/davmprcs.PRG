@@ -1,0 +1,7665 @@
+* Program.: davmprcs.prg
+* Author..: PETER R. RYDER
+* Date....: 09-13-1989
+* RevDate.: 27Aug18 16Feb18 14Sep17 16May16 05Jun12 04Apr1999 20Feb1999 15Feb1999 08Feb1999 07Feb1999 08Jan1999 03Jan1999  22Dec1998 22Nov98 27Oct1998  30Sep1998
+* Notes...: main proc file for AV DMS
+_REFOX_ = (9876543210)
+_REFOX_ = (9876543210)
+
+* net file | findstr wboarddat > F:\NACFOX\wbrdopen.txt
+
+* SET KEY gotchas **********************************
+* SET KEY will NOT be released if same SET ORDER is issued over again - without a new SET KEY
+* ex  SELE batchprt
+*     SET ORDER TO SKU
+*     SET KEY TO 12345
+*     now, other code  does stuff, then new code selects batchprt and set orde to sku or set order to sku desc,  KEY will still be  12345
+* SET KEY WILL be released by issuing SET ORDER TO
+* SET KEY WILL be released by issuing SET ORDER TO a different order
+* SET KEY WILL be changed by issuing SET KEY TO a different key
+*!* Also issue below
+*!*	USE F:\NACFOX\inv
+*!*	SET ORDER TO invloc
+*!*	SET KEY TO [M15]
+*!*	? SET("KEY") shows key = M15,M15
+*!*	=SEEK([N12],[inv],[invmfg]) && this does NOT remove key
+*!*	? SET("KEY") still shows key = M15,M15
+*!*	SET ORDER TO invmfg  && this DOES remove key  
+*!*	SET ORDER TO         && this DOES remove key  
+
+lSniffPrinters=.F.
+*// PART_HIST  PNUM DATE QTY REF_MISC TAIL SERIAL CAT REF_NUM LIST COST SKU PE_NUM USERTRKNUM VMNEM PO_REF
+*//            1    2    3   4        5    6      7   8       9    10   11  12     13         14    15
+
+*!*	DO FORM ack_wind WITH [Preparing to import files from ACTOOLS installation]+CHR(13);
+*!*	  +[Type  IMPORT ACTOOLS  to confirm],[IMPORT ACTOOLS],ThisForm.Top,ThisForm.Left,[CONFIRM IMPORT] To wtd
+*!*	IF !wtd
+*!*	  =pwaitMB([ACTOOLS IMPORT cancelled by user])
+*!*	  RETURN
+*!*	ENDIF
+
+*wtd=MESSAGEBOX([You need to choose Yes or No],4+48+256,[ADVISORY])
+*6=Yes 7=No *256=default 2nd button *0=def first button  512 = Third Button   16=StopSign 32=? 48=! 64=InfoIcon
+
+*wtd=MESSAGEBOX([You need to choose Yes or No or Cancel],3+48+512,[ADVISORY])
+*6=Yes 7=No 2=Cancel *256=default 2nd button *0=def first button  512 = Third Button16=StopSign 32=? 48=! 64=InfoIcon
+
+*wtd=MESSAGEBOX([You need to choose OK],0+48,[ADVISORY])
+*1=OK
+
+*wtd=MESSAGEBOX([You need to choose OK or Cancel],1+48,[ADVISORY])
+*1=0k 2=Cancel *256=default 2nd button *0=def first button
+
+*!*	Dialog box BUTTONS ++++++++++++++++++++++++++++
+*!*	0	OK button only.  	1	OK and Cancel buttons.  2	Abort, Retry, and Ignore buttons.
+*!*	3	Yes, No, and Cancel buttons.  4	Yes and No buttons.  5	Retry and Cancel buttons.
+*!*	ICON ++++++++++++++++++++++++++++++++++++++++++
+*!*	  16	Stop sign.  32	Question mark.  48	Exclamation point.  64	Information (i) icon.
+*!*	DEFAULT button +++++++++++++++++++++++++++++++
+*!*	  0	First button.  256	Second button.  512	Third button.
+*!*	RETURN Values  1 OK  2 Cancel  3 Abort  4 Retry  5 Ignore  6 Yes  7 No
+
+*// oApp.oToolbar.SetAll('Enabled',.F.,'commandbutton_toolbar') && will shut down all toolbar icons
+*// oApp.DefaultValues('av337s',SET('DATASESSION')) && fills a record with default values from DD including PK's
+
+************************************************
+*// can be used to force app to top window
+*// first get the win handle
+* DECLARE Integer GetActiveWindow in WIN32API
+* lhCurrentWindow = GetActiveWindow( )
+
+* SET THE ACTIVE WINDOW TO THE FOREGROUND
+* DECLARE Integer SetActiveWindow in WIN32API long lhCurrentWindow
+* lnRESULT = SetActiveWindow( lhCurrentWindow )
+**************************************************
+**************************************************
+*// use to rename a directory
+*FUNCTION RenDir( OrigDir, NewDir )
+*DECLARE INTEGER MoveFile IN WIN32API AS apiMoveFile STRING
+*lpExistingFileName, STRING lpNewFileName
+*RETURN 0<>apiMoveFile( OrigDir, NewDir )
+*ENDFUNC
+*************************************************************
+
+PROCEDURE GetWirelessSoftware &&&&&&&&&&&&&&&&&&&&
+RETURN
+
+FUNCTION FindBadChars &&-------------------------------------
+LPARAM xcheck,xfield  && mainly used to check for bad chars in BOM imports
+PRIV cgood,nret
+nret = 0
+xcheck = ALLT(UPPE(xcheck))
+cgood = [ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ~!@#$%^&*()_-+=<>,.;:'"/\±]  +  "[]"  && stopped ° on 28Dec18
+*!*	IF ALLT(xfield)#[MFG]
+*!*	  cgood = cgood+[/\]
+*!*	ENDIF
+nlen = LEN(xcheck)
+FOR qwL = 1 TO nlen
+  c1 = SUBS(xcheck,qwl,1)
+  IF !c1 $ cgood
+    nret = qwl
+    EXIT
+  ENDIF
+ENDFOR
+RETURN(nret)
+
+FUNCTION GenWboxId &&---------------------------------------
+SELECT 0
+USE f:\nacfox\seq_nums AGAIN ALIAS seqnums2
+nnextnum = seqnums2.westellbox + 1
+REPLACE westellbox WITH nnextnum IN seqnums2
+USE IN seqnums2
+RETURN([BSP]+STRTR(STR(nnextnum,13),[ ],[0]))
+
+FUNCTION GenWpalId &&---------------------------------------
+SELECT 0
+USE f:\nacfox\seq_nums AGAIN ALIAS seqnums2
+nnextnum = seqnums2.westellpal + 1
+REPLACE westellpal WITH nnextnum IN seqnums2
+USE IN seqnums2
+RETURN([PSP]+STRTR(STR(nnextnum,13),[ ],[0]))
+
+FUNCTION GetPrvStr &&-------------------------
+LPARA qqp,qqr,qqv
+PRIV qqp,qqr,qqv,qqstr
+qqstr = ALLT(qqp);
+  +IIF(!EMPT(qqr),[ / ]+ALLT(qqr),[ /NoRev!]);
+  +IIF(!EMPT(qqv),[ > ]+ALLT(qqv),[])
+RETURN(qqstr)
+
+FUNCTION IsOtherLoc &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  LPT-0001-A  LPH-0001  HEAT-023
+LPARAM locin918
+PRIV l0226,l0221,l0222,l0224,l0223,l0225,l0226,l0227,l0229
+l0226=LEN(ALLT(locin918))>7  .and. INLI(LEFT(locin918,4),[LPH-]) .and. SUBS(locin918,4,1)=[-]  && LPH-0024   or  LPH-0024B
+l0221=LEN(ALLT(locin918))>7  .and. INLI(LEFT(locin918,4),[LPT-]) .and. SUBS(locin918,9,1)=[-]  && LPT-0001-A
+l0222=LEN(ALLT(locin918))=8  .and. INLI(LEFT(locin918,4),[HEAT]) .and. SUBS(locin918,5,1)=[-]
+l0224=LEN(ALLT(locin918))=7  .and. INLI(LEFT(locin918,3),[QT-])  .and. SUBS(locin918,3,1)=[-]
+l0223=LEN(ALLT(locin918))>1  .and. INLI(LEFT(locin918,2),[QT]) 
+l0225=LEN(ALLT(locin918))=10 .and. INLI(LEFT(locin918,3),[LR-]) .and. SUBS(locin918,6,1)=[-] .and. SUBS(locin918,8,1)=[-] && LR-01-A-01  Large Reels
+l0229=LEN(ALLT(locin918))=10 .and. INLI(LEFT(locin918,3),[DN-]) .and. SUBS(locin918,5,1)=[-] .and. SUBS(locin918,7,1)=[-] && DN-1-J-3-C  DIN rail storage
+l0227=LEN(ALLT(locin918))=8  .and. INLI(LEFT(locin918,4),[TERM]) .and. SUBS(locin918,5,1)=[-]
+*// possibly look-up in inocart.loc
+**WAIT locin918+[  ]+IIF(l0226,[T],[F]) WIND
+RETURN(l0226.or.l0221.or.l0222 .or. l0223 .or. l0224 .or. l0225 .or. l0226 .or. l0227 .or. l0229)
+
+FUNCTION IsDynamicLoc &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& any dynamic location
+LPARAM locin920
+l0225=IsBagLoc(locin920).or.IsWireLoc(locin920).or.IsCableLoc(locin920).or.IsIno(locin920).or.IsOtherLoc(locin920)
+*// possibly look-up in inocart.loc
+RETURN(l0225)
+
+FUNCTION IsBagLoc &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& BAG-123 or  BAG-00123
+LPARAM locin919
+l0227=LEN(ALLT(locin919))=7 .and. INLI(LEFT(locin919,4),[BAG-])
+l0228=LEN(ALLT(locin919))=9 .and. INLI(LEFT(locin919,4),[BAG-])
+*// possibly look-up in inocart.loc
+RETURN(l0227.or.l0228)
+
+FUNCTION IsWireLoc &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  WIRE-047-A
+LPARAM locin918
+l0226=LEN(ALLT(locin918))=10 .and. INLI(LEFT(locin918,5),[WIRE-]) .and. SUBS(locin918,9,1)=[-]
+*// possibly look-up in inocart.loc
+RETURN(l0226)
+
+FUNCTION IsCableLoc &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  CABL-047-A
+LPARAM locin916
+l0228=LEN(ALLT(locin916))=10 .and. INLI(LEFT(locin916,5),[CABL-]) .and. SUBS(locin916,9,1)=[-]
+*// possibly look-up in inocart.loc
+RETURN(l0228)
+
+FUNCTION IsIno &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& A-AB-23
+LPARAM locin917
+lino=LEN(ALLT(locin917))=7 .and. INLI(LEFT(locin917,2),[A-],[B-],[C-],[D-],[E-],[F-],[G-],[H-],[I-],[J-],[K-]) ;
+  .and. SUBS(locin917,2,1)=[-] .and. SUBS(locin917,5,1)=[-]
+*// possibly look-up in inocart.loc
+RETURN(lino)
+
+FUNCTION zDropTees &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+LPARAM zpart23
+PRIV zpart23,zret23
+zret23 = zpart23
+t2=RIGHT(ALLT(zpart23),2)
+t3=RIGHT(ALLT(zpart23),3)
+t4=RIGHT(ALLT(zpart23),4)
+t5=RIGHT(ALLT(zpart23),5)
+t6=RIGHT(ALLT(zpart23),6)
+t7=RIGHT(ALLT(zpart23),7)
+t8=RIGHT(ALLT(zpart23),8)
+t9=RIGHT(ALLT(zpart23),9)
+t10=RIGHT(ALLT(zpart23),10)
+t11=RIGHT(ALLT(zpart23),11)
+t12=RIGHT(ALLT(zpart23),12)
+DO CASE
+CASE t2 == [-C]
+  zret23 = STRTR(zpart23,[-C],[])
+CASE t2 == [-T]
+  zret23 = STRTR(zpart23,[-T],[])
+CASE t2 == [-S]
+  zret23 = STRTR(zpart23,[-S],[])
+CASE t2 == [-R]
+  zret23 = STRTR(zpart23,[-R],[])
+CASE t3 == [-C1]
+  zret23 = STRTR(zpart23,[-C1],[])
+CASE t3 == [-C2]
+  zret23 = STRTR(zpart23,[-C2],[])
+CASE t3 == [-R2]
+  zret23 = STRTR(zpart23,[-R2],[])
+CASE t3 == [-R3]
+  zret23 = STRTR(zpart23,[-R3],[])
+CASE t3 == [-RR]
+  zret23 = STRTR(zpart23,[-RR],[])
+CASE t3 == [-R1]
+  zret23 = STRTR(zpart23,[-R1],[])
+CASE t3 == [-TT]
+  zret23 = STRTR(zpart23,[-TT],[])
+CASE t3 == [-T1]
+  zret23 = STRTR(zpart23,[-T1],[])
+CASE t3 == [-T2]
+  zret23 = STRTR(zpart23,[-T2],[])
+CASE t3 == [-T3]
+  zret23 = STRTR(zpart23,[-T3],[])
+CASE t3 == [-T4]
+  zret23 = STRTR(zpart23,[-T4],[])
+CASE t3 == [-T5]
+  zret23 = STRTR(zpart23,[-T5],[])
+CASE t3 == [-ND]
+  zret23 = STRTR(zpart23,[-ND],[])
+CASE t3 == [-CC]
+  zret23 = STRTR(zpart23,[-CC],[])
+CASE t3 == [-MN]
+  zret23 = STRTR(zpart23,[-MN],[])
+CASE t4 == [-ALT]
+  zret23 = STRTR(zpart23,[-ALT],[])
+CASE t6 == [-PANEL]
+  zret23 = STRTR(zpart23,[-PANEL],[])
+CASE t4 == [-CCC]
+  zret23 = STRTR(zpart23,[-CCC],[])
+CASE t4 == [-CAL]
+  zret23 = STRTR(zpart23,[-CAL],[])
+CASE t4 == [-RWK]
+  zret23 = STRTR(zpart23,[-RWK],[])
+CASE t4 == [-LBL]
+  zret23 = STRTR(zpart23,[-LBL],[])
+CASE t4 == [-IND]
+  zret23 = STRTR(zpart23,[-IND],[])
+CASE t4 == [-MOD]
+  zret23 = STRTR(zpart23,[-MOD],[])
+CASE t4 == [/MOD]
+  zret23 = STRTR(zpart23,[/MOD],[])
+CASE t4 == [-PCB]
+  zret23 = STRTR(zpart23,[-PCB],[])
+CASE t4 == [-TTT]
+  zret23 = STRTR(zpart23,[-TTT],[])
+CASE t4 == [-RMA]
+  zret23 = STRTR(zpart23,[-RMA],[])
+CASE t4 == [-ENG]
+  zret23 = STRTR(zpart23,[-ENG],[])
+CASE t4 == [-KIT]
+  zret23 = STRTR(zpart23,[-KIT],[])
+CASE t7 == [-SUBKIT]
+  zret23 = STRTR(zpart23,[-SUBKIT],[])
+CASE t8 == [-UPGRADE]
+  zret23 = STRTR(zpart23,[-UPGRADE],[])
+CASE t4 == [-BUD]
+  zret23 = STRTR(zpart23,[-BUD],[])
+CASE t4 == [-CSI]
+  zret23 = STRTR(zpart23,[-CSI],[])
+CASE t4 == [-SMT]
+  zret23 = STRTR(zpart23,[-SMT],[])
+CASE t4 == [-SUB]
+  zret23 = STRTR(zpart23,[-SUB],[])
+CASE t4 == [/SUB]
+  zret23 = STRTR(zpart23,[/SUB],[])
+CASE t5 == [-TEST]
+  zret23 = STRTR(zpart23,[-TEST],[])
+CASE t5 == [-PROG]
+  zret23 = STRTR(zpart23,[-PROG],[])
+CASE t5 == [-PROD]
+  zret23 = STRTR(zpart23,[-PROD],[])
+CASE t5 == [-RWK1]
+  zret23 = STRTR(zpart23,[-RWK1],[])
+CASE t5 == [-RWK3]
+  zret23 = STRTR(zpart23,[-RWK2],[])
+CASE t5 == [-RWK3]
+  zret23 = STRTR(zpart23,[-RWK3],[])
+CASE t5 == [-RWK4]
+  zret23 = STRTR(zpart23,[-RWK4],[])
+CASE t5 == [-RWK5]
+  zret23 = STRTR(zpart23,[-RWK5],[])
+CASE t5 == [-RWK6]
+  zret23 = STRTR(zpart23,[-RWK6],[])
+CASE t5 == [-RWK7]
+  zret23 = STRTR(zpart23,[-RWK7],[])
+CASE t5 == [-RWK8]
+  zret23 = STRTR(zpart23,[-RWK8],[])
+CASE t5 == [-RWK9]
+  zret23 = STRTR(zpart23,[-RWK9],[])
+CASE t6 == [-RWK10]
+  zret23 = STRTR(zpart23,[-RWK10],[])
+CASE t5 == [-PROG]
+  zret23 = STRTR(zpart23,[-PROG],[])
+CASE t5 == [-MATL]
+  zret23 = STRTR(zpart23,[-MATL],[])
+CASE t5 == [-ROHS]
+  zret23 = STRTR(zpart23,[-ROHS],[])
+CASE t5 == [-CONV]
+  zret23 = STRTR(zpart23,[-CONV],[])
+CASE t5 == [-EVAL]
+  zret23 = STRTR(zpart23,[-EVAL],[])
+CASE t5 == [-CANC]
+  zret23 = STRTR(zpart23,[-CANC],[])
+CASE t5 == [-STEN]
+  zret23 = STRTR(zpart23,[-STEN],[])
+CASE t5 == [-COST]
+  zret23 = STRTR(zpart23,[-COST],[])
+CASE t6 == [-CABLE]
+  zret23 = STRTR(zpart23,[-CABLE],[])
+CASE t6 == [-CONV1]
+  zret23 = STRTR(zpart23,[-CONV1],[])
+CASE t6 == [-CONV2]
+  zret23 = STRTR(zpart23,[-CONV2],[])
+CASE t6 == [-MAT'L]
+  zret23 = STRTR(zpart23,[-MAT'L],[])
+CASE t6 == [-ALIGN]
+  zret23 = STRTR(zpart23,[-ALIGN],[])
+CASE t6 == [-LABEL]
+  zret23 = STRTR(zpart23,[-LABEL],[])
+CASE t6 == [-PARTS]
+  zret23 = STRTR(zpart23,[-PARTS],[])
+CASE t6 == [-LABOR]
+  zret23 = STRTR(zpart23,[-LABOR],[])
+CASE t6 == [-SCRAP]
+  zret23 = STRTR(zpart23,[-SCRAP],[])
+CASE t7 == [-LABELS]
+  zret23 = STRTR(zpart23,[-LABELS],[])
+CASE t7 == [-CANCEL]
+  zret23 = STRTR(zpart23,[-CANCEL],[])
+CASE t7 == [-REPAIR]
+  zret23 = STRTR(zpart23,[-REPAIR],[])
+CASE t6 == [REWORK]
+  zret23 = STRTR(zpart23,[REWORK],[])
+CASE t7 == [-REWORK]
+  zret23 = STRTR(zpart23,[-REWORK],[])
+CASE t7 == [ REWORK]
+  zret23 = STRTR(zpart23,[ REWORK],[])
+CASE t7 == [-BUDGET]
+  zret23 = STRTR(zpart23,[-BUDGET],[])
+CASE t7 == [-EXCESS]
+  zret23 = STRTR(zpart23,[-EXCESS],[])
+CASE t7 == [ EXCESS]
+  zret23 = STRTR(zpart23,[ EXCESS],[])
+CASE t8 == [-INSPECT]
+  zret23 = STRTR(zpart23,[-INSPECT],[])
+CASE t8 == [-SPECIAL]
+  zret23 = STRTR(zpart23,[-SPECIAL],[])
+CASE t8 == [-MACHINE]
+  zret23 = STRTR(zpart23,[-MACHINE],[])
+CASE t8 == [-CONSIGN]
+  zret23 = STRTR(zpart23,[-CONSIGN],[])
+CASE t8 == [-HARNESS]
+  zret23 = STRTR(zpart23,[-HARNESS],[])
+CASE t8 == [-REWORK2]
+  zret23 = STRTR(zpart23,[-REWORK2],[])
+CASE t8 == [-STENCIL]
+  zret23 = STRTR(zpart23,[-STENCIL],[])
+CASE t8 == [-FIXTURE]
+  zret23 = STRTR(zpart23,[-FIXTURE],[])
+CASE t8 == [-TOOLING]
+  zret23 = STRTR(zpart23,[-TOOLING],[])
+CASE t8 == [/TOOLING]
+  zret23 = STRTR(zpart23,[/TOOLING],[])
+CASE t9 == [-FIXTURES]
+  zret23 = STRTR(zpart23,[-FIXTURES],[])
+CASE t10 == [-TEST FIXT]
+  zret23 = STRTR(zpart23,[-TEST FIXT],[])
+CASE t10 == [ TEST FIXT]
+  zret23 = STRTR(zpart23,[ TEST FIXT],[])
+CASE t9 == [-MODIFIED]
+  zret23 = STRTR(zpart23,[-MODIFIED],[])
+CASE t9 == [-EXPOSURE]
+  zret23 = STRTR(zpart23,[-EXPOSURE],[])
+CASE t9 == [-PCB ONLY]
+  zret23 = STRTR(zpart23,[-PCB ONLY],[])
+CASE t9 == [-BREAKOUT]
+  zret23 = STRTR(zpart23,[-BREAKOUT],[])
+CASE t10 == [-MISC MATL]
+  zret23 = STRTR(zpart23,[-MISC MATL],[])
+CASE t10 == [-COST DIFF]
+  zret23 = STRTR(zpart23,[-COST DIFF],[])
+CASE t11 == [-MISC MAT'L]
+  zret23 = STRTR(zpart23,[-MISC MAT'L],[])
+CASE t12 == [-CANCELATION]
+  zret23 = STRTR(zpart23,[-CANCELATION],[])
+ENDCASE
+zret23 = PADR(ALLT(zret23),19)
+RETURN(zret23)
+
+TEXT
+*!*	-EXTAR PARTS
+*!*	 EXCESS INV
+*!*	-ROGER
+*!*	-DEV193
+*!*	-EM
+*!*	/HARN
+*!*	-ADD
+*!*	/W-SUBS
+*!*	-BURN IN
+*!*	-REFLASH
+*!*	-MISC PARTS
+*!*	-KIT-S
+*!*	-STENCI
+*!*	-REPACK
+*!*	 CUT&STRIP
+*!*	-HARD
+*!*	-ND
+*!*	-PCB-PC
+ENDTEXT
+
+FUNCTION reverseit &&--------------------
+LPARAM in74,lshow74
+len74 = LEN(ALLT(in74))
+out74=[*&!@%]
+IF len74 < 1 .or. !lshow74
+  out74 = [Unk...]
+ELSE
+  out74 = []
+  FOR jqy = len74 TO 1 STEP -1
+    *WAIT SUBS(in74,jqy,1) WIND TIME .2
+    out74 = out74 + SUBS(in74,jqy,1)
+  ENDFOR
+ENDIF
+RETURN(out74)
+
+FUNCTION GetSys2015 && ---------------------
+LOCAL m.Result
+m.Result=SYS(2015)
+DO WHILE m.Result=SYS(2015)
+ENDDO
+RETURN(m.Result)
+
+PROCEDURE GetPoSuffix &&&&--------------------------------------------
+LPARA nsuffix43
+csuff43=[]
+IF nsuffix43 < 26
+  csuff43 = 1
+ELSE
+  p1 = LOWER(nsu)
+ENDIF
+
+FUNCTION Tweak_Time &&---------------------------
+LPARA tin,noff
+h1=VAL(SUBS(tin,1,2))
+m1=VAL(SUBS(tin,4,2))
+s1=VAL(SUBS(tin,7,2))
+DO CASE
+ CASE m1+noff > 59
+   h1 = h1 + 1
+   m1 = (m1+noff) - 60
+ OTHERWISE
+   m1 = m1 + noff
+ENDCASE
+h1 = STRT(STR(h1,2),[ ],[0])+[:]
+m1 = STRT(STR(m1,2),[ ],[0])+[:]
+s1 = STRT(STR(s1,2),[ ],[0])
+RETURN(h1+m1+s1)
+
+PROCEDURE GetbCostEa &&---------------------------------------------
+LPARAM sku882
+jalias3 = ALIAS()
+SELE 0
+USE F:\nacfox\batchprt AGAIN ALIAS bparts882
+cretval=[]
+IF SEEK(sku882,[bparts882],[sku])
+  cretval = ALLT(TRAN(bparts882.ucost,[$$$,$$$.$$$$]))
+  IF 1=1 &&LEN(cretval)>10 &&  $8,900.0820
+    cretval = STRTR(cretval,[.0000],[.000])
+    cretval = STRTR(cretval,[.000],[.00])
+  ENDIF
+  IF bparts882.ucost > 100
+    cretval = ALLT(cretval)
+    jdp3 = AT([.],cretval)
+    l22 = LEN(cretval)
+    IF SUBS(cretval,jdp3+3,2)=[00]
+      cretval=LEFT(cretval,l22-2)
+    ENDIF
+    IF SUBS(cretval,jdp3+1,1)=[0]
+      cretval=LEFT(cretval,l22-1)
+    ENDIF
+    IF LEN(cretval)>10
+      cretval = STRTR(cretval,[$],[])
+    ENDIF
+    IF LEN(cretval)>10
+      cretval = STRTR(cretval,[,],[])
+    ENDIF
+  ENDIF
+ENDIF
+USE IN bparts882
+IF !EMPT(jalias3)
+  SELECT &jalias3
+ENDIF
+RETURN(ALLT(cretval))
+
+PROCEDURE nsi_hist &&----------------------
+PARA nh1,nh2,nh3,nh4,nh5,nh6,nh7,nh8,nh9,nh10,nh11,nh12,nh13,nh14,nh15,nh16
+PRIV nh1,nh2,nh3,nh4,nh5,nh6,nh7,nh8,nh9,nh10,nh11,nh12,m_alias
+*---- example
+*=nsi_hist(qmat.mfg,DATE(),qty,[REASON.....],cost,time
+* called to automatically make an history entry
+*WAIT [nh 11  ]+nh11 WIND
+m_alias = ALIAS()
+IF TYPE('nh7') # "C" && po# C(6)
+  nh7=[]
+ENDIF
+IF TYPE('nh8') # "D" && dexpire D(8)
+  nh8 = {}
+ENDIF
+IF TYPE('nh9') # "N" 
+  nh9 = 0
+ENDIF
+IF TYPE('nh10') # "C" && po# C(6)
+  nh10=[]
+ENDIF
+IF TYPE('nh11') # "C" && po# C(6)
+  nh11=[]
+ENDIF
+IF !USED('nsihist')
+  =open_dbf("nsihist")
+ENDIF
+IF !USED('confloc')
+  jusen = ALLT(LEFT(SYS(0),14))
+ELSE
+  jusen = ALLT(confloc.username)+[ ]+ALLT(LEFT(SYS(0),14))
+ENDIF
+SELE nsihist
+APPE BLANK
+REPLACE partnum WITH nh1, date WITH nh2, qty WITH nh3,ref_misc WITH nh4, ucost WITH nh5;
+  , time WITH nh6,userid WITH jusen,po WITH nh7,dexpire WITH nh8,sku WITH nh9;
+  ,rxrohs WITH nh10,rxleadfree WITH nh11,lvslavail WITH nh12;
+  ,msds_flam WITH nh13,msds_reac WITH nh14,msds_heal WITH nh15,msds_prot WITH nh16 IN nsihist
+IF !EMPT(m_alias)
+  SELE &m_alias
+ENDIF
+RETURN
+
+PROCEDURE GetRmaStatus &&--------------------------------------
+*//  MUST HAVE  RMA and QGEN2  open
+LOCAL lretval,lallparties
+SELE rma
+lretval=[Unknown...] &&
+IF !USED("qgen2").or.!USED("rma")
+  RETURN(lretval)
+ENDIF
+IF !EMPT(rma.rma)
+  RETURN("Closed")
+ENDIF
+lqgenok = !EMPT(rma.new_lot).AND.SEEK(PADL(ALLT(rma.new_lot),6),[qgen2],[genjob])
+lallparties=.T.
+IF rma.lsmt .AND. (EMPT(rma.dsmt).OR.EMPT(rma.namsmt))
+  lallparties=.F.
+ENDIF
+IF rma.lthr .AND. (EMPT(rma.dthr).OR.EMPT(rma.namthr))
+  lallparties=.F.
+ENDIF
+IF rma.lcab .AND. (EMPT(rma.dcab).OR.EMPT(rma.namcab))
+  lallparties=.F.
+ENDIF
+IF rma.lem .AND. (EMPT(rma.dem).OR.EMPT(rma.namem))
+  lallparties=.F.
+ENDIF
+IF rma.ldocs .AND. (EMPT(rma.ddocs).OR.EMPT(rma.namdocs))
+  lallparties=.F.
+ENDIF
+IF rma.ltest .AND. (EMPT(rma.dtest).OR.EMPT(rma.namtest))
+  lallparties=.F.
+ENDIF
+IF rma.lqual .AND. (EMPT(rma.dqual).OR.EMPT(rma.namqual))
+  lallparties=.F.
+ENDIF
+IF rma.lmat .AND. (EMPT(rma.dmat).OR.EMPT(rma.nammat))
+  lallparties=.F.
+ENDIF
+IF rma.lpres .AND. (EMPT(rma.dpres).OR.EMPT(rma.nampres))
+  lallparties=.F.
+ENDIF
+IF rma.lshp .AND. (EMPT(rma.dshp).OR.EMPT(rma.namshp))
+  lallparties=.F.
+ENDIF
+IF rma.lstk .AND. (EMPT(rma.dstk).OR.EMPT(rma.namstk))
+  lallparties=.F.
+ENDIF
+IF rma.laoi .AND. (EMPT(rma.daoi).OR.EMPT(rma.namaoi))
+  lallparties=.F.
+ENDIF
+IF rma.lprd .AND. (EMPT(rma.dprd).OR.EMPT(rma.namprd))
+  lallparties=.F.
+ENDIF
+IF rma.lcus .AND. (EMPT(rma.dcus).OR.EMPT(rma.namcus))
+  lallparties=.F.
+ENDIF
+IF rma.litn .AND. (EMPT(rma.ditn).OR.EMPT(rma.namitn))
+  lallparties=.F.
+ENDIF
+IF rma.litd .AND. (EMPT(rma.ditd).OR.EMPT(rma.namitd))
+  lallparties=.F.
+ENDIF
+SELE rma
+DO CASE
+  CASE FSIZE('deaddate')>0.and.rma.deaddate#{}
+    lretval=[Dead ]+DTOC(rma.deaddate)
+  CASE !EMPT(rma.rma)
+    lretval = [Closed]
+  CASE EMPT(new_lot) .or. !lqgenok
+    lretval = [Requires "New" Lot#]
+  CASE lqgenok .AND. lallparties .AND. qgen2.bal = 0
+    lretval = [Closed]
+  CASE lqgenok .AND. qgen2.bal = qgen2.qty
+    lretval = [Open]
+  CASE lqgenok .AND. qgen2.bal > 0 .AND. qgen2.bal < qgen2.qty
+    lretval = [Partially Shipped]
+  CASE lqgenok .AND. qgen2.bal = 0
+    lretval = [Fully Shipped]
+ENDCASE
+IF ALLT(UPPE(rma.status)) # ALLT(UPPE(lretval))
+  REPL status WITH lretval IN rma
+ENDIF
+RETURN(lretval)
+
+PROCEDURE GetAvStatus &&&---------------------------
+LOCAL lretval,lallparties
+SELE av
+lretval=[Unknown...]
+***lqgenok = SEEK(orig_lot,[qgen2],[genjob])
+IF !USED("av")
+  RETURN(lretval)
+ENDIF
+lallparties=.T.
+IF av.lsmt .AND. (EMPT(av.dsmt).OR.EMPT(av.namsmt))
+  lallparties=.F.
+ENDIF
+IF av.lthr .AND. (EMPT(av.dthr).OR.EMPT(av.namthr))
+  lallparties=.F.
+ENDIF
+IF av.lcab .AND. (EMPT(av.dcab).OR.EMPT(av.namcab))
+  lallparties=.F.
+ENDIF
+IF av.lem .AND. (EMPT(av.dem).OR.EMPT(av.namem))
+  lallparties=.F.
+ENDIF
+IF av.ldocs .AND. (EMPT(av.ddocs).OR.EMPT(av.namdocs))
+  lallparties=.F.
+ENDIF
+IF av.ltest .AND. (EMPT(av.dtest).OR.EMPT(av.namtest))
+  lallparties=.F.
+ENDIF
+IF av.lqual .AND. (EMPT(av.dqual).OR.EMPT(av.namqual))
+  lallparties=.F.
+ENDIF
+IF av.lmat .AND. (EMPT(av.dmat).OR.EMPT(av.nammat))
+  lallparties=.F.
+ENDIF
+IF av.lpres .AND. (EMPT(av.dpres).OR.EMPT(av.nampres))
+  lallparties=.F.
+ENDIF
+IF av.lshp .AND. (EMPT(av.dshp).OR.EMPT(av.namshp))
+  lallparties=.F.
+ENDIF
+IF av.lstk .AND. (EMPT(av.dstk).OR.EMPT(av.namstk))
+  lallparties=.F.
+ENDIF
+IF av.laoi .AND. (EMPT(av.daoi).OR.EMPT(av.namaoi))
+  lallparties=.F.
+ENDIF
+IF av.lprd .AND. (EMPT(av.dprd).OR.EMPT(av.namprd))
+  lallparties=.F.
+ENDIF
+IF av.lcus .AND. (EMPT(av.dcus).OR.EMPT(av.namcus))
+  lallparties=.F.
+ENDIF
+IF av.litn .AND. (EMPT(av.ditn).OR.EMPT(av.namitn))
+  lallparties=.F.
+ENDIF
+IF av.litd .AND. (EMPT(av.ditd).OR.EMPT(av.namitd))
+  lallparties=.F.
+ENDIF
+DO CASE
+  CASE av.deaddate#{}
+    lretval = [Dead ]+ShortDate(av.deaddate)
+  CASE !EMPT(av.dclosed).and.lallparties
+    lretval = [Closed ]+ShortDate(av.dclosed)
+  OTHERWISE 
+    lretval = [Open]
+ENDCASE
+IF ALLT(av.STATUS) # ALLT(lretval)
+  REPL av.STATUS WITH lretval IN av
+ENDIF
+RETURN(lretval)
+
+PROCEDURE GetPaStatus &&&---------------------------
+LOCAL lretval,lallparties
+SELE pa
+lretval=[Unknown...]
+***lqgenok = SEEK(orig_lot,[qgen2],[genjob])
+IF !USED("pa")
+  RETURN(lretval)
+ENDIF
+lallparties=.T.
+IF pa.lsmt .AND. (EMPT(pa.dsmt).OR.EMPT(pa.namsmt))
+  lallparties=.F.
+ENDIF
+IF pa.lthr .AND. (EMPT(pa.dthr).OR.EMPT(pa.namthr))
+  lallparties=.F.
+ENDIF
+IF pa.lcab .AND. (EMPT(pa.dcab).OR.EMPT(pa.namcab))
+  lallparties=.F.
+ENDIF
+IF pa.lem .AND. (EMPT(pa.dem).OR.EMPT(pa.namem))
+  lallparties=.F.
+ENDIF
+IF pa.ldocs .AND. (EMPT(pa.ddocs).OR.EMPT(pa.namdocs))
+  lallparties=.F.
+ENDIF
+IF pa.ltest .AND. (EMPT(pa.dtest).OR.EMPT(pa.namtest))
+  lallparties=.F.
+ENDIF
+IF pa.lqual .AND. (EMPT(pa.dqual).OR.EMPT(pa.namqual))
+  lallparties=.F.
+ENDIF
+IF pa.lmat .AND. (EMPT(pa.dmat).OR.EMPT(pa.nammat))
+  lallparties=.F.
+ENDIF
+IF pa.lpres .AND. (EMPT(pa.dpres).OR.EMPT(pa.nampres))
+  lallparties=.F.
+ENDIF
+IF pa.lshp .AND. (EMPT(pa.dshp).OR.EMPT(pa.namshp))
+  lallparties=.F.
+ENDIF
+IF pa.lstk .AND. (EMPT(pa.dstk).OR.EMPT(pa.namstk))
+  lallparties=.F.
+ENDIF
+IF pa.laoi .AND. (EMPT(pa.daoi).OR.EMPT(pa.namaoi))
+  lallparties=.F.
+ENDIF
+IF pa.lprd .AND. (EMPT(pa.dprd).OR.EMPT(pa.namprd))
+  lallparties=.F.
+ENDIF
+IF pa.lcus .AND. (EMPT(pa.dcus).OR.EMPT(pa.namcus))
+  lallparties=.F.
+ENDIF
+IF pa.litn .AND. (EMPT(pa.ditn).OR.EMPT(pa.namitn))
+  lallparties=.F.
+ENDIF
+IF pa.litd .AND. (EMPT(pa.ditd).OR.EMPT(pa.namitd))
+  lallparties=.F.
+ENDIF
+DO CASE
+  CASE pa.deaddate#{}
+    lretval = [Dead ]+ShortDate(pa.deaddate)
+  CASE !EMPT(pa.dclosed).and.lallparties
+    lretval = [Closed ]+ShortDate(pa.dclosed)
+  OTHERWISE 
+    lretval = [Open]
+ENDCASE
+IF ALLT(pa.STATUS) # ALLT(lretval)
+  REPL pa.STATUS WITH lretval IN pa
+ENDIF
+RETURN(lretval)
+
+PROCEDURE GetCaStatus &&&---------------------------
+SELE CA
+lretval=[Open]
+lallparties=.T.
+IF ca.lsmt .AND. (EMPT(ca.dsmt).OR.EMPT(ca.namsmt))
+  lallparties=.F.
+ENDIF
+IF ca.lthr .AND. (EMPT(ca.dthr).OR.EMPT(ca.namthr))
+  lallparties=.F.
+ENDIF
+IF ca.lcab .AND. (EMPT(ca.dcab).OR.EMPT(ca.namcab))
+  lallparties=.F.
+ENDIF
+IF ca.lem .AND. (EMPT(ca.dem).OR.EMPT(ca.namem))
+  lallparties=.F.
+ENDIF
+IF ca.ldocs .AND. (EMPT(ca.ddocs).OR.EMPT(ca.namdocs))
+  lallparties=.F.
+ENDIF
+IF ca.ltest .AND. (EMPT(ca.dtest).OR.EMPT(ca.namtest))
+  lallparties=.F.
+ENDIF
+IF ca.lqual .AND. (EMPT(ca.dqual).OR.EMPT(ca.namqual))
+  lallparties=.F.
+ENDIF
+IF ca.lmat .AND. (EMPT(ca.dmat).OR.EMPT(ca.nammat))
+  lallparties=.F.
+ENDIF
+IF ca.lpres .AND. (EMPT(ca.dpres).OR.EMPT(ca.nampres))
+  lallparties=.F.
+ENDIF
+IF ca.lshp .AND. (EMPT(ca.dshp).OR.EMPT(ca.namshp))
+  lallparties=.F.
+ENDIF
+IF ca.lstk .AND. (EMPT(ca.dstk).OR.EMPT(ca.namstk))
+  lallparties=.F.
+ENDIF
+IF ca.laoi .AND. (EMPT(ca.daoi).OR.EMPT(ca.namaoi))
+  lallparties=.F.
+ENDIF
+IF ca.lprd .AND. (EMPT(ca.dprd).OR.EMPT(ca.namprd))
+  lallparties=.F.
+ENDIF
+IF ca.lcus .AND. (EMPT(ca.dcus).OR.EMPT(ca.namcus))
+  lallparties=.F.
+ENDIF
+IF ca.litn .AND. (EMPT(ca.ditn).OR.EMPT(ca.namitn))
+  lallparties=.F.
+ENDIF
+IF ca.litd .AND. (EMPT(ca.ditd).OR.EMPT(ca.namitd))
+  lallparties=.F.
+ENDIF
+DO CASE
+    CASE ca.deaddate#{}
+      lretval = [Dead ]+ShortDate(ca.deaddate)
+    CASE !EMPT(CA.dclosed).AND.lallparties
+      lretval = [Closed ]+ShortDate(ca.dclosed)
+    OTHERWISE
+      lretval = [Open]
+ENDCASE
+IF ALLT(CA.STATUS)#lretval
+    REPL CA.STATUS WITH lretval IN CA
+ENDIF
+RETURN(lretval)
+
+PROCEDURE GetCfStatus &&&---------------------------
+SELE cf
+lretval=[Unknown...]
+lallparties=.T.
+IF cf.lsmt .AND. (EMPT(cf.dsmt).OR.EMPT(cf.namsmt))
+  lallparties=.F.
+ENDIF
+IF cf.lthr .AND. (EMPT(cf.dthr).OR.EMPT(cf.namthr))
+  lallparties=.F.
+ENDIF
+IF cf.lcab .AND. (EMPT(cf.dcab).OR.EMPT(cf.namcab))
+  lallparties=.F.
+ENDIF
+IF cf.lem .AND. (EMPT(cf.dem).OR.EMPT(cf.namem))
+  lallparties=.F.
+ENDIF
+IF cf.ldocs .AND. (EMPT(cf.ddocs).OR.EMPT(cf.namdocs))
+  lallparties=.F.
+ENDIF
+IF cf.ltest .AND. (EMPT(cf.dtest).OR.EMPT(cf.namtest))
+  lallparties=.F.
+ENDIF
+IF cf.lqual .AND. (EMPT(cf.dqual).OR.EMPT(cf.namqual))
+  lallparties=.F.
+ENDIF
+IF cf.lmat .AND. (EMPT(cf.dmat).OR.EMPT(cf.nammat))
+  lallparties=.F.
+ENDIF
+IF cf.lpres .AND. (EMPT(cf.dpres).OR.EMPT(cf.nampres))
+  lallparties=.F.
+ENDIF
+IF cf.lshp .AND. (EMPT(cf.dshp).OR.EMPT(cf.namshp))
+  lallparties=.F.
+ENDIF
+IF cf.lstk .AND. (EMPT(cf.dstk).OR.EMPT(cf.namstk))
+  lallparties=.F.
+ENDIF
+IF cf.laoi .AND. (EMPT(cf.daoi).OR.EMPT(cf.namaoi))
+  lallparties=.F.
+ENDIF
+IF cf.lprd .AND. (EMPT(cf.dprd).OR.EMPT(cf.namprd))
+  lallparties=.F.
+ENDIF
+IF cf.lcus .AND. (EMPT(cf.dcus).OR.EMPT(cf.namcus))
+  lallparties=.F.
+ENDIF
+IF cf.litn .AND. (EMPT(cf.ditn).OR.EMPT(cf.namitn))
+  lallparties=.F.
+ENDIF
+IF cf.litd .AND. (EMPT(cf.ditd).OR.EMPT(cf.namitd))
+  lallparties=.F.
+ENDIF
+DO CASE
+  CASE cf.deaddate#{}
+    lretval = [Dead ]+ShortDate(cf.deaddate)
+  CASE !EMPT(cf.dclosed).and.lallparties
+    lretval = [Closed ]+ShortDate(cf.dclosed)
+  OTHERWISE 
+    lretval = [Open]
+ENDCASE
+IF ALLT(cf.STATUS) # ALLT(lretval)
+  REPL cf.STATUS WITH lretval IN cf
+ENDIF
+RETURN(lretval)
+
+PROCEDURE GetScarStatus &&&---------------------------
+SELE SCAR
+lretval=[Unknown...]
+lallparties=.T.
+IF scar.lsmt .AND. (EMPT(scar.dsmt).OR.EMPT(scar.namsmt))
+  lallparties=.F.
+ENDIF
+IF scar.lthr .AND. (EMPT(scar.dthr).OR.EMPT(scar.namthr))
+  lallparties=.F.
+ENDIF
+IF scar.lcab .AND. (EMPT(scar.dcab).OR.EMPT(scar.namcab))
+  lallparties=.F.
+ENDIF
+IF scar.lem .AND. (EMPT(scar.dem).OR.EMPT(scar.namem))
+  lallparties=.F.
+ENDIF
+IF scar.ldocs .AND. (EMPT(scar.ddocs).OR.EMPT(scar.namdocs))
+  lallparties=.F.
+ENDIF
+IF scar.ltest .AND. (EMPT(scar.dtest).OR.EMPT(scar.namtest))
+  lallparties=.F.
+ENDIF
+IF scar.lqual .AND. (EMPT(scar.dqual).OR.EMPT(scar.namqual))
+  lallparties=.F.
+ENDIF
+IF scar.lmat .AND. (EMPT(scar.dmat).OR.EMPT(scar.nammat))
+  lallparties=.F.
+ENDIF
+IF scar.lpres .AND. (EMPT(scar.dpres).OR.EMPT(scar.nampres))
+  lallparties=.F.
+ENDIF
+IF scar.lshp .AND. (EMPT(scar.dshp).OR.EMPT(scar.namshp))
+  lallparties=.F.
+ENDIF
+IF scar.lstk .AND. (EMPT(scar.dstk).OR.EMPT(scar.namstk))
+  lallparties=.F.
+ENDIF
+IF scar.laoi .AND. (EMPT(scar.daoi).OR.EMPT(scar.namaoi))
+  lallparties=.F.
+ENDIF
+IF scar.lprd .AND. (EMPT(scar.dprd).OR.EMPT(scar.namprd))
+  lallparties=.F.
+ENDIF
+IF scar.lcus .AND. (EMPT(scar.dcus).OR.EMPT(scar.namcus))
+  lallparties=.F.
+ENDIF
+IF scar.litn .AND. (EMPT(scar.ditn).OR.EMPT(scar.namitn))
+  lallparties=.F.
+ENDIF
+IF scar.litd .AND. (EMPT(scar.ditd).OR.EMPT(scar.namitd))
+  lallparties=.F.
+ENDIF
+DO CASE
+  CASE scar.deaddate#{}
+    lretval = [Dead ]+ShortDate(scar.deaddate)
+  CASE !EMPT(scar.dclosed).and.lallparties
+    lretval = [Closed ]+ShortDate(scar.dclosed)
+  OTHERWISE 
+    lretval = [Open]
+ENDCASE
+IF ALLT(scar.STATUS) # ALLT(lretval)
+  REPL scar.STATUS WITH lretval IN scar
+ENDIF
+RETURN(lretval)
+
+PROCEDURE send_csm_email &&-------------------------------------
+PARA xlist64,zsub,zbody,zcsmtype
+PRIV xlist64,zsub,zbody,xto21
+xalias023=ALIAS()
+lok = .T.
+xto21 = [peter@spinnakercontract.com]
+*WAIT [CSM EMAIL ] WIND
+IF lok .and. [SMT ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.smt),xto21,xto21,zsub+[ SMT ],zbody+[ RESPONSIBLE PARTY: SMT],.F.
+*!*	  IF !EMPT(bomcompcfg.smt1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.smt1),xto21,xto21,zsub+[ SMT ],zbody+[ RESPONSIBLE PARTY: SMT],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.smt2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.smt2),xto21,xto21,zsub+[ SMT ],zbody+[ RESPONSIBLE PARTY: SMT],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [THR ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.thr),xto21,xto21,zsub+[ THRU-HOLE ],zbody+[ RESPONSIBLE PARTY: THRU-HOLE],.F.
+*!*	  IF !EMPT(bomcompcfg.thr1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.thr1),xto21,xto21,zsub+[ THRU-HOLE ],zbody+[ RESPONSIBLE PARTY: THRU-HOLE],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.thr2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.thr2),xto21,xto21,zsub+[ THRU-HOLE ],zbody+[ RESPONSIBLE PARTY: THRU-HOLE],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [CAB ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.cab),xto21,xto21,zsub+[ CABLES ],zbody+[ RESPONSIBLE PARTY: CABLES],.F.
+*!*	  IF !EMPT(bomcompcfg.cab1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cab1),xto21,xto21,zsub+[ CABLES ],zbody+[ RESPONSIBLE PARTY: CABLES],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.cab2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cab2),xto21,xto21,zsub+[ CABLES ],zbody+[ RESPONSIBLE PARTY: CABLES],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [EM ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.em),xto21,xto21,zsub+[ E/M ],zbody+[ RESPONSIBLE PARTY: E/M],.F.
+*!*	  IF !EMPT(bomcompcfg.em1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.em1),xto21,xto21,zsub+[ E/M ],zbody+[ RESPONSIBLE PARTY: E/M],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.em2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.em2),xto21,xto21,zsub+[ E/M ],zbody+[ RESPONSIBLE PARTY: E/M],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [TEST ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.test),xto21,xto21,zsub+[ TEST ],zbody+[ RESPONSIBLE PARTY: TEST],.F.
+*!*	  IF !EMPT(bomcompcfg.test1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.test1),xto21,xto21,zsub+[ TEST ],zbody+[ RESPONSIBLE PARTY: TEST],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.test2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.test1),xto21,xto21,zsub+[ TEST ],zbody+[ RESPONSIBLE PARTY: TEST],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [DOCS ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.docs),xto21,xto21,zsub+[ DOCUMENTATION ],zbody+[ RESPONSIBLE PARTY: DOCUMENTATION],.F.
+*!*	  IF !EMPT(bomcompcfg.docs1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.docs1),xto21,xto21,zsub+[ DOCUMENTATION ],zbody+[ RESPONSIBLE PARTY: DOCUMENTATION],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.docs2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.docs2),xto21,xto21,zsub+[ DOCUMENTATION ],zbody+[ RESPONSIBLE PARTY: DOCUMENTATION],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [QC ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.qual),xto21,xto21,zsub+[ QC ],zbody+[ RESPONSIBLE PARTY: QC],.F.
+*!*	  IF !EMPT(bomcompcfg.qual1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.qual1),xto21,xto21,zsub+[ QC ],zbody+[ RESPONSIBLE PARTY: QC],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.qual2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.qual2),xto21,xto21,zsub+[ QC ],zbody+[ RESPONSIBLE PARTY: QC],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [MAT ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.mat),xto21,xto21,zsub+[ MAT ],zbody+[ RESPONSIBLE PARTY: MAT],.F.
+*!*	  IF !EMPT(bomcompcfg.qual1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.mat1),xto21,xto21,zsub+[ MAT ],zbody+[ RESPONSIBLE PARTY: MAT],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.qual2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.mat2),xto21,xto21,zsub+[ MAT ],zbody+[ RESPONSIBLE PARTY: MAT],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [PRES ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.pres),xto21,xto21,zsub+[ PRES ],zbody+[ RESPONSIBLE PARTY: PRES],.F.
+*!*	  IF !EMPT(bomcompcfg.pres1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.pres1),xto21,xto21,zsub+[ PRES ],zbody+[ RESPONSIBLE PARTY: PRES],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.pres2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.pres2),xto21,xto21,zsub+[ PRES ],zbody+[ RESPONSIBLE PARTY: PRES],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [SHP ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.shp),xto21,xto21,zsub+[ SHIPPING ],zbody+[ RESPONSIBLE PARTY: SHIPPING],.F.
+*!*	  IF !EMPT(bomcompcfg.shp1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.shp1),xto21,xto21,zsub+[ SHIPPING ],zbody+[ RESPONSIBLE PARTY: SHIPPING],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.shp2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.shp2),xto21,xto21,zsub+[ SHIPPING ],zbody+[ RESPONSIBLE PARTY: SHIPPING],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [STK ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.stk),xto21,xto21,zsub+[ STOCK ROOM ],zbody+[ RESPONSIBLE PARTY: STOCK ROOM],.F.
+*!*	  IF !EMPT(bomcompcfg.stk1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.stk1),xto21,xto21,zsub+[ STOCK ROOM ],zbody+[ RESPONSIBLE PARTY: STOCK ROOM],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.stk2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.stk2),xto21,xto21,zsub+[ STOCK ROOM ],zbody+[ RESPONSIBLE PARTY: STOCK ROOM],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [AOI ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.aoi),xto21,xto21,zsub+[ AOI ],zbody+[ RESPONSIBLE PARTY: AOI],.F.
+*!*	  IF !EMPT(bomcompcfg.aoi1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.aoi1),xto21,xto21,zsub+[ AOI ],zbody+[ RESPONSIBLE PARTY: AOI],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.aoi2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.aoi2),xto21,xto21,zsub+[ AOI ],zbody+[ RESPONSIBLE PARTY: AOI],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [PRD ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.prd),xto21,xto21,zsub+[ PRODUCTION ],zbody+[ RESPONSIBLE PARTY: PRODUCTION],.F.
+*!*	  IF !EMPT(bomcompcfg.prd1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.prd1),xto21,xto21,zsub+[ PRODUCTION ],zbody+[ RESPONSIBLE PARTY: PRODUCTION],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.prd2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.prd2),xto21,xto21,zsub+[ PRODUCTION ],zbody+[ RESPONSIBLE PARTY: PRODUCTION],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [CUS ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.cus),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  IF !EMPT(bomcompcfg.cus1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cus1),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.cus2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cus2),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [ITN ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.itn),xto21,xto21,zsub+[ IT NETWORK ],zbody+[ RESPONSIBLE PARTY: IT NETWORK],.F.
+*!*	  IF !EMPT(bomcompcfg.cus1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cus1),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.cus2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cus2),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  ENDIF
+ENDIF
+IF lok .and. [ITD ]$xlist64
+  DO send_email WITH ALLT(bomcompcfg.itd),xto21,xto21,zsub+[ IT DEVELOPMENT ],zbody+[ RESPONSIBLE PARTY: IT DEVELOPMENT],.F.
+*!*	  IF !EMPT(bomcompcfg.cus1)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cus1),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  ENDIF
+*!*	  IF !EMPT(bomcompcfg.cus2)
+*!*	    DO send_email WITH ALLT(bomcompcfg.cus2),xto21,xto21,zsub+[ CUST SERV ],zbody+[ RESPONSIBLE PARTY: CUST SERV],.F.
+*!*	  ENDIF
+ENDIF
+=pwaitMB(zcsmtype+[  Emails just send to   ]+STRTR(xlist64,[ ],[  ]))
+IF !EMPT(xalias023)
+  SELE (xalias023)
+ENDIF
+
+
+PROCEDURE kit_hist &&----------------------
+PARA ph1,ph2,ph3,ph4,ph5,ph6,ph7
+PRIV ph1,ph2,ph3,ph4,ph5,ph6,ph7,m_alias
+*---- example
+*=kit_hist(job,mfg,cae,qty,sku,[REASON.....],key]
+**WAIT [Kit Hist ]+ph1+[ ]+ph2+[ ]+ph3 WIND
+m_alias = ALIAS()
+IF !USED('kithist')
+  =open_dbf("kithist")
+ENDIF
+jusen = IIF(USED('confloc'),ALLT(confloc.username)+[ ],[])+ALLT(LEFT(SYS(0),14))
+SELE kithist
+APPE BLANK IN kithist
+REPLACE job WITH ph1,pnumkey WITH ph2, cae WITH ph3, qty WITH ph4, sku WITH ph5,;
+  ref_misc WITH ph6, date WITH DATE(), time WITH TIME(),userid WITH jusen,;
+  key1 WITH ph7 IN kithist
+IF !EMPT(m_alias)
+  SELE &m_alias
+ENDIF
+RETURN
+
+FUNCTION DaysNo_WE &&--------------------------
+* GROSS time calc spans across multiple days
+* 11Apr08 need to deduct weekends - used for QuoteTurnaround Time
+PARA d1,d2
+PRIV d1,d2,ndays,mdays,ndeduct
+STORE 0 TO ndeduct,ndays,mdays
+IF d1={}.or.d2={}
+  RETURN(0)
+ENDIF
+mdays = d2-d1
+ndays = ABS(mdays)
+IF mdays<0
+  d3 = d2 && swap the dates for calc
+  d2 = d1
+  d1 = d3
+ENDIF
+FOR jjj = 1 TO ndays
+  dxdate = d1 + jjj
+  ndeduct = ndeduct + IIF(INLI(DOW(dxdate),7,1),1,0) && deduct sat,sun
+ENDFOR
+RETURN( (ndays - ndeduct) * IIF(mdays<0,-1,1) ) 
+
+FUNCTION DaysNo_WE2 &&--------------------------
+* text version of above
+PARA d1,d2
+PRIV d1,d2,ndays,mdays,ndeduct,d3,c3
+STORE 0 TO ndeduct,ndays,mdays
+IF d1={}.or.d2={}
+  RETURN(0)
+ENDIF
+mdays = d2-d1
+ndays = ABS(mdays)
+IF mdays<0
+  d3 = d2 && swap the dates for calc
+  d2 = d1
+  d1 = d3
+ENDIF
+FOR jjj = 1 TO ndays
+  dxdate = d1 + jjj
+  ndeduct = ndeduct + IIF(INLI(DOW(dxdate),7,1),1,0) && deduct sat,sun
+ENDFOR
+d3=(ndays - ndeduct) * IIF(mdays<0,-1,1)
+c3 = ALLT(STR(ABS(d3)))
+DO CASE
+  CASE d3>0
+    c3 = [+]+ALLT(c3)
+  CASE d3<0
+    c3 = [-]+ALLT(c3)
+  OTHERWISE
+    c3 = [ ]+ALLT(c3)
+ENDCASE
+RETURN( c3+[d] ) 
+
+PROCEDURE po_hist &&========================
+PARA po1,po2,po3,po4,po5,po6
+PRIV po1,po2,po3,po4,po5,po6,m_alias,jusen
+*---- example
+*=po_hist(po,mfg,qty,[REASON.....],sku,cost)
+* called to automatically make an history entry
+
+IF !USED('poedhist')
+  =open_dbf("poedhist")
+ENDIF
+IF !USED('confloc')
+  jusen = LEFT(SYS(0),14)
+ELSE
+  jusen = confloc.username
+ENDIF
+  m_alias = ALIAS()
+  SELE poedhist
+  APPE BLANK
+  REPLACE po WITH po1,mfg WITH po2, date WITH DATE();
+    ,time WITH TIME(), qty WITH po3,ref_misc WITH po4;
+    ,cost WITH po6,sku WITH po5, userid WITH jusen
+  IF !EMPT(m_alias)
+    SELE &m_alias
+  ENDIF
+RETURN
+
+PROCEDURE vown_hist &&----------------------
+PARA ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8
+PRIV ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,zkey,m_alias
+*---- example
+*=vown_hist(mfg,vcode,qty,ucost,job,po)
+* called to automatically make an history entry
+zKey = SYS(2015)
+DO WHILE EMPT(zkey)
+  zKey = SYS(2015)
+ENDDO
+IF !USED('vownlog')
+  =open_dbf("vownlog")
+ENDIF
+IF !USED([vownlog])
+  RETURN
+ENDIF
+m_alias = ALIAS()
+SELE vownlog
+APPE BLANK
+REPLACE mfg WITH ph1, vcode WITH ph2, dused WITH DATE(),;
+  qtyused WITH ph3, costea WITH ph4, job WITH ph5,;
+  po WITH ph6, sku WITH ph7, key WITH zkey,po_email WITH ph8
+IF !EMPT(m_alias)
+  SELE &m_alias
+ENDIF
+RETURN
+
+PROCEDURE TakeAttr &&-----------------------------
+*// 29Aug15 03Oct07 10Sep07 09Sep07 
+*// called like   =TakeAttr(inv.desc,inv.mfg,__psku,inv.onhand)
+PARA jDesc,jmfg,jsku,jinvoh,jCall
+PRIV jDesc,jmfg,jsku,jinvoh,jTakeQty,jAttDesc,jCall
+nawg = AT('AWG',jdesc)
+nwire= AT('WIRE',jdesc)
+zjAlias = ALIAS()
+jAttDesc=[]
+STORE 0 TO AMtTaken,jTakeQty,jTakeQty2
+IF 1=1  &&'WIRE'$jdesc && don't even bother with this if wire
+  SELE attrit01
+  SCAN
+    IF !EMPT(attrit01.desc).and. ALLT(UPPE(attrit01.desc)) $ UPPE(jDesc)
+      jTakeQty = attrit01.nrate_kit
+      jAttDesc = STRTR(ALLT(attrit01.desc),[,],[]) && strip comma
+      EXIT
+    ENDIF
+  ENDSCAN
+ENDIF
+
+IF jTakeQty = 0 .and. nwire > 0 .and. nawg > 0  && no smt attr but this is wire so check
+  cstr = SUBS(jdesc,nwire,nawg-nwire+1)
+  IF [20]$cstr.or.[21]$cstr.or.[22]$cstr.or.[23]$cstr.or.[24]$cstr.or.[25]$cstr.or.[26]$cstr.or.[27]$cstr.or.[28]$cstr.or.[29]$cstr.or.[30]$cstr
+    jTakeQty = 0.500  && 6 inches && Guy 28Aug15
+    IF BETW(DATE(),{08/31/2015},{09/05/2015})
+      DO send_email WITH [pete@tangoware.com],[peter@spinnakercontract.com];
+         ,[peter@spinnakercontract.com],[WIRE ATTR ],[WIRE ATTR -0.50  ]+jcall+[  ]+jdesc,.F.
+    ENDIF
+  ENDIF
+ENDIF
+*!*	IF FILE("C:\PyroPete.VLD")
+*!*	  WAIT [TAKE ATTR  ]+ALLT(jDesc)+[ ]+ALLT(jmfg)+[ ]+STR(jsku)+STR(jtakeqty,12,3) WIND NOWAIT
+*!*	ENDIF
+
+*!*	IF jTakeQty <=0
+*!*	  RETURN && bale out if nothing to attrition
+*!*	ENDIF
+
+IF jTakeQty > 0  && this is for smt parts like 0402  etc  AND  wire
+  SELE batchprt && mfg,sku,ucost,qty_rec,qty_used
+  SET ORDER TO invmfg && to look at all
+  SEEK jMfg
+  SCAN WHILE batchprt.mfg = jMfg .and. jTakeQty > 0 && try to use from orig sku first
+    xavail = batchprt.qty_rec - batchprt.qty_used
+    IF batchprt.sku = jSku
+      cantake = MAX(0, MIN(xavail, jTakeQty) )
+      IF CanTake > 0
+        REPL batchprt.qty_used WITH batchprt.qty_used + cantake
+        jTakeQty = MAX(0,jTakeQty - CanTake) && update remaining amt
+        DO att_hist 
+      ENDIF
+      EXIT
+    ENDIF
+  ENDSCAN
+ENDIF
+
+IF !EMPT(zjAlias)
+  SELE &zjAlias
+ENDIF
+
+PROCEDURE att_hist &&-----------------------------------
+*=part_hist(qmat.mfg1 ,DATE()2 ,qty3 ,[REASON.....]4 ,cost5 ,time6 ,utnum7;
+*  ,sku8 ,vendowned9 ,key1_10 ,kitjob11 ,caeqty12 ,cae13 ,dexpire14 ,po15 ,loc16 ,pkgsize17 ,ThisForm._zUserName18
+=part_hist(batchprt.mfg ,DATE() ,ABS(CanTake)*-1;
+  ,[LOT ]+ALLT(qgen.job)+[ ]+[ATTR_]+jAttDesc+[ ]+ALLT(jCall);
+  +IIF(!EMPT(batchprt.mfg),[ PO]+ALLT(batchprt.po),[]),;
+  batchprt.ucost ,TIME() ,batchprt.utnum ,batchprt.sku ,batchprt.vendowned, [],[],0,[],{},batchprt.po , [], [], []) &&,batchprt.vendowned
+
+PROCEDURE Crimp_Updt && --------------------
+PARA zmfg,zcrimps  && usage    =Crimp_Updt(inv.mfg,zqty)
+PRIV zmfg,xAlias,zcrimps
+xAlias=ALIAS()
+lMoveInvRec = .F.
+IF inv.mfg # zmfg
+  lMoveInvRec = .T.
+  SELE inv
+  irecno = RECNO()
+  iOrder = ORDER()
+  SET ORDE TO invmfg IN inv
+  SEEK zmfg
+  IF !FOUND()
+    IF !EMPT(xalias)
+      SELE (xAlias)
+    ENDIF
+    RETURN
+  ENDIF
+ENDIF
+SELE inv
+* crimp_cnt N(7) 9999999
+IF inv.crimp_cnt > 9900000
+  zcrimps = 0
+ENDIF
+REPL inv.crimp_cnt WITH MAX(0,inv.crimp_cnt + zcrimps),;
+  inv.total_cc WITH MAX(0,inv.total_cc + zcrimps), inv.redo_desc WITH DATE()
+IF lMoveInvRec .and. irecno > 0
+  SELE inv
+  SET ORDER TO &iOrder
+  GOTO irecno
+ENDIF
+IF !EMPT(xalias)
+  SELE (xAlias)
+ENDIF
+
+PROCEDURE qmat_hist && ---------------------------------------
+PARA x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11
+PRIV x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,jAlias,j909
+*// =qmat_hist(xxLink,__psku,PickedQty,__pactcost,qgen.job,qmat.mfg,[])
+jAlias = ALIAS()
+IF !USED("qmat_s")
+  SELE 0
+  USE qmat_s
+ELSE
+  SELE qmat_s
+ENDIF
+APPE BLANK
+IF FSIZE("pickkey") > 1
+  REPL pickkey WITH x5 + SYS(2015) IN qmat_s
+ENDIF
+REPL qlink WITH x1 ,sku WITH x2 ,qty WITH x3 , cost WITH x4 ,cae WITH x7 ;
+ ,job WITH x5 ,mfg WITH x6, DATE WITH DATE(), time WITH TIME();
+ ,vendowned WITH x8, lnew WITH .T.,source WITH x11 IN qmat_s && lnew will flag that done in VFP 22Feb2010 or after
+ j909 = qmat_s.job+qmat_s.mfg+qmat_s.cae+STR(RECN("qmat_s"),10)
+IF x9
+  REPL kitscansku WITH x2,kitdate WITH DATE(),kittime WITH TIME(),kituserid WITH x10 IN qmat_s
+*=part_hist(qmat.mfg1 ,DATE()2 ,qty3 ,[REASON.....]4 ,cost5 ,time6 ,utnum7;
+*  ,sku8 ,vendowned9 ,key1_10 ,kitjob11 ,caeqty12 ,cae13 ,dexpire14 ,po15 ,loc16 ,pkgsize17 ,ThisForm._zUserName18
+  =part_hist(x6 ,DATE(),0,[Picked ]+ALLT(TRAN(x3,[999,999.99]))+[ L]+ALLT(x5)+[ VFP RxKit];
+    ,0,TIME(),[],x2,[],[],x5 ,0,[],{},[],[],[],[])
+ENDIF
+IF !EMPT(jAlias)
+  SELE (jAlias)
+ENDIF
+RETURN(j909)
+
+FUNCTION GrossTime2 &&--------------------------
+* GROSS time calc spans across multiple days
+* 11Apr08 need to deduct weekends - used for QuoteTurnaround Time
+PARA t1,t2,d1,d2
+PRIV t1,t2,d1,d2,ti,to,mdays,ndeduct
+ndeduct=0
+IF INLI(t1,'  :  ','     ').or.INLI(t2,'  :  ','     ').or.d1={}.or.d2={}
+  RETURN(0)
+ENDIF
+IF t1='00:00'.and.t2='00:00'
+  RETURN(0)
+ENDIF
+mdays = d2-d1
+IF mdays<0
+  RETURN(0)
+ENDIF
+FOR jjj = 1 TO mdays
+  dxdate = d1 + jjj
+  ndeduct = ndeduct + IIF(INLI(DOW(dxdate),7,1),24,0) && deduct sat,sun
+ENDFOR
+ti=VAL(SUBS(t1,1,2))+(VAL(SUBS(t1,4,2))/60)  &&+(VAL(SUBS(time_i,7,2))/6000)
+to=VAL(SUBS(t2,1,2))+(VAL(SUBS(t2,4,2))/60)  &&+(VAL(SUBS(time_o,7,2))/6000)
+DO CASE
+  CASE mdays < 1   && all on same day
+    t_o = to - ti
+  CASE mdays>=1 .and. to = ti   && spanned day and equal IN  OUT
+    t_o = 24*mdays
+  CASE mdays=1 .and. to < ti   && spanned 1 day  out is less than in
+    t_o = (24-ti) + to
+  CASE mdays=1 .and. to > ti   && spanned 1 day out is greater than in
+    t_o = (24-ti) + to
+  CASE mdays>1 .and. to > ti   && spanned > 1 day out is greater than in
+    t_o = (24*(mdays)) + to -ti
+  CASE mdays>1 .and. to < ti   && spanned > 1 day out is greater than in
+    t_o = (24*(mdays-1)) + (24-ti) + to
+  OTHERWISE
+    t_o = 0
+ENDCASE
+*t_o = IIF(CEIL(t_o),t_o) && next highest because personal time
+t_o = t_o - ndeduct
+RETURN(MAX(0,t_o)) && gross time
+
+FUNCTION DaysHrsMin && --------------------------------------------------------
+PARA jHrs
+jRemain =jHrs *3600
+PRIVATE     jDays, jHours, jMinutes, jSeconds, jSec, jRemain, cdays, cHours, cMinutes, cSeconds
+STORE 0  TO jDays, jHours, jMinutes, jSeconds
+STORE [] TO cdays, cHours, cMinutes, cSeconds
+IF jRemain > 86359 && days
+  jDays   = INT(jRemain / 86400)
+  jRemain = jRemain - (jDays * 86400)
+  cdays   = IIF(jDays>0,ALLT(STR(jDays))+[d ],[])
+ENDIF
+IF jRemain > 3559 && hrs
+  jHours   = INT(jRemain / 3600)
+  jRemain  = jRemain - (jHours * 3600)
+  cHours   = IIF(jHours>0,ALLT(STR(jHours))+[h ],[])
+ENDIF
+IF jRemain > 59 && min
+  jMinutes = INT(jRemain / 60)
+  jRemain  = jRemain - (jMinutes * 60)
+  cMinutes = IIF(jMinutes>0,ALLT(STR(jMinutes))+[m ],[])
+ENDIF
+cSeconds = ALLT(STR(jRemain))+[s ] && always show seconds even if zero
+RETURN(cdays+cHours+cMinutes) && +cSeconds
+
+FUNCTION AttribStr &&--------------------------------------------
+*// =AttribStr(leadfree,rohs,ul,csa,cec,buyam)
+PARA xlf,xrohs,xul,xcsa,xcec,xbuyam,xtraceable
+PRIV xlf,xrohs,xul,xcsa,xcec,xbuyam,xstr,xtraceable
+xStr = []
+xStr = xStr + IIF(xlf=[Y],[LF/],[])
+xStr = xStr + IIF(xrohs=[Y],[ROHS/],[])
+xStr = xStr + IIF(xul=[Y],[UL/],[])
+xStr = xStr + IIF(xcsa=[Y],[CSA/],[])
+xStr = xStr + IIF(xcec=[Y],[CEC/],[])
+xStr = xStr + IIF(xbuyam=[Y],[ITAR/],[])
+xStr = xStr + IIF(xtraceable=[Y],[TRCE/],[])
+xStr = STRTR(xStr,[//],[/])
+xStr = ALLT(STRTR(xStr,[ ],[]))
+xl   = LEN(xStr)
+IF xl>1 .and. RIGHT(xStr,1)=[/]
+  xStr = LEFT(xStr,xl-1)
+ENDIF
+RETURN(xStr) && 24chars MAX
+
+PROCEDURE batch_qoh && --------------------
+PARA zmfg,zupinv  && usage    =batch_qoh(inv.mfg,.T.)
+* // pass partnumber and it loads 2 public mvars
+* // and updates inv.onhand    can be used to
+* // simply get new values for reports or to update inv
+* // when scanning thru inv
+PRIV zmfg,zeqoh,zbqoh,xAlias,zupinv,__pqoh,__pavgcost
+SELE inv
+*!*	IF FILE("C:\ThisFileOnlyOn.CTI")
+*!*	  WAIT [BATCH_QOH1 INV SET KEY = ]+SET('KEY') WIND
+*!*	ENDIF
+IF !SEEK(zmfg,[inv],[invmfg])
+  RETURN
+ENDIF
+xAlias=ALIAS()
+lMoveInvRec = .F.
+IF inv.mfg # zmfg
+  lMoveInvRec = .T.
+  SELE inv
+  irecno = RECNO()
+  iOrder = ORDER()
+  SET ORDE TO invmfg IN inv
+*!*	  IF FILE("C:\ThisFileOnlyOn.CTI")
+*!*	    WAIT [BATCH_QOH2 INV SET KEY = ]+SET('KEY') WIND
+*!*	  ENDIF
+  SEEK zmfg
+ENDIF
+SELE batchprt
+SET ORDE TO invmfg IN batchprt
+*!*	  IF FILE("C:\ThisFileOnlyOn.CTI")
+*!*	    WAIT [BATCH_QOH3 BATCHPRT SET KEY = ]+SET('KEY') WIND
+*!*	  ENDIF
+STORE 0  TO zbqoh,zeqoh,zeCost
+SEEK zmfg
+SCAN WHILE batchprt.mfg = zmfg
+  zbqoh  = batchprt.qty_rec-batchprt.qty_used
+  zeqoh  = zeqoh  + batchprt.qty_rec-batchprt.qty_used
+  zECost = zECost + (zbqoh * batchprt.ucost)
+ENDSCAN
+SELE inv
+IF FSIZE('lnsi')>0.and.inv.lnsi
+  STORE 0 TO __pqoh,__pavgcost && always force ZERO when NSI
+ELSE
+  __pqoh     = MAX(0,zEqoh)
+  __pavgcost = ROUN(IIF(zEcost>0.and.zeqoh>0,zEcost/zeqoh,0),4)
+ENDIF
+IF zupinv .and. inv.onhand # __pqoh .and. inv.mfg = zmfg
+  SELE inv
+  IF RLOCK('inv')
+    REPL onhand WITH __pqoh, avgcost WITH __pavgcost IN inv
+    UNLOCK IN inv
+  ENDIF
+ENDIF
+IF zupinv .and. inv.avgcost # __pavgcost .and. inv.mfg = zmfg
+  SELE inv
+  IF RLOCK('inv')
+    REPL avgcost WITH __pavgcost IN inv
+    UNLOCK IN inv
+  ENDIF
+ENDIF
+IF lMoveInvRec
+  SELE inv
+  SET ORDER TO &iOrder
+  GOTO irecno
+ENDIF
+IF !EMPT(xalias)
+  SELE (xAlias)
+ENDIF
+RETURN
+
+FUNCTION ShortDate &&-----------------------------------------
+PARA ld
+PRIV ld,dt
+IF ld={}
+  RETURN([])
+ELSE
+  dt = DTOS(ld)
+  RETURN(SUBS(dt,5,2)+[/]+SUBS(dt,7,2)+[/]+SUBS(dt,3,2))
+ENDIF
+
+FUNCTION AttribStr &&--------------------------------------------
+*// =AttribStr(leadfree,rohs,ul,csa,cec,buyam)
+PARA zlf,zrohs,zul,zcsa,zcec,zbuyam,ztraceable
+PRIV zlf,zrohs,zul,zcsa,zcec,zbuyam,xstr,ztraceable
+IF PARAM()<7
+  ztraceable=[ ]
+ENDIF
+xStr = []
+xStr = xStr + IIF(zlf=[Y],[LF/],[])
+xStr = xStr + IIF(zrohs=[Y],[ROHS/],[])
+xStr = xStr + IIF(zul=[Y],[UL/],[])
+xStr = xStr + IIF(zcsa=[Y],[CSA/],[])
+xStr = xStr + IIF(zcec=[Y],[CEC/],[])
+xStr = xStr + IIF(zbuyam=[Y],[ITAR/],[])
+xStr = xStr + IIF(ztraceable=[Y],[TRCE/],[])
+xStr = STRTR(xStr,[//],[/])
+xStr = ALLT(STRTR(xStr,[ ],[]))
+xl   = LEN(xStr)
+IF xl>1 .and. RIGHT(xStr,1)=[/]
+  xStr = LEFT(xStr,xl-1)
+ENDIF
+RETURN(xStr) && 24chars MAX
+
+
+  FUNCTION GenTempFile  &&-------------------------------------------
+  *// Ex:  GenTempFile([GLGETS])
+  LPARA jIn
+  PRIV jIn,jOut
+  IF TYPE("zzStartDir")=[U]
+    zzStartDir = ALLT(SYS(5))+ALLT(SYS(2003))
+    *zzStartDir = [C:\SPN]
+  ENDIF
+  jOut = STRTR(UPPE(jIn),[\DATA\],[])  && s/b just file name now
+  =Close_Dbf(jIn)
+  IF DIRECTORY(zzStartDir+[\TEMP])
+    jErase = zzStartDir+[\DATA\]+jOut+[.*] && clean from data dir if exists
+    jErase = STRTR(UPPE(jErase),[.DBF],[])
+    *WAIT jErase WIND
+    IF !USED(jIn)
+      ERASE (jErase)
+    ENDIF
+    jOut = zzStartDir+[\TEMP\]+jOut
+  ELSE
+    jOut = zzStartDir+[\DATA\]+jOut
+  ENDIF
+  RETURN(jOut)
+
+PROCEDURE DupCheck &&--------------------------------------
+*// Ex: DO dupcheck IN LWWPROCS WITH [pieces],[p_pcno]
+PARA ztable,zkey,zorder
+PRIV ztable,zkey,zorder
+IF PARA()=2
+  zorder = zkey
+ENDIF
+SELE &zkey AS _key, COUNT(*) AS _count ;
+  FROM (ztable) GROUP BY _key HAVING _count > 1;
+  ORDER BY &zorder
+
+PROCEDURE TBUP &&================================================================================
+*// TableUpdates
+LPARAM tables2up
+IF !EMPT(tables2up)
+  zzitem = STRTR([,]+UPPE(ALLT(tables2up))+[,],[,,],[,])
+  zcommas = OCCURS([,],zzitem )
+  IF zcommas > 0
+    FOR qqq = 1 TO zcommas
+      zzzval= SUBS(zzitem ,AT([,],zzitem ,qqq),(AT([,],zzitem ,qqq+1)-AT([,],zzitem ,qqq)))
+      zzzval = ALLT(UPPE(STRTR(zzzval,[,],[])))
+      IF USED(zzzval).and.!EMPT(zzzval)
+        =TABLEUPDATE(.T.,.T.,zzzval)
+        WAIT [Updated  ]+zzzval WIND TIME .1
+      ENDIF
+    ENDFOR
+  ENDIF
+ENDIF
+
+FUNCTION GetSrchNum && ==========================================================================
+*// returns value for default search field
+LPARA jFormNum
+LOCAL jRetNum
+jRetNum = VAL(SUBS(configlc.fmisc004,jFormNum,1))
+jRetNum = IIF(!BETW(jRetNum,1,254),1,jRetNum)
+RETURN( jRetNum )
+
+PROCEDURE SetSrchNum && ==========================================================================
+*// stores value for default search field
+LPARA jFormNum,jSrchNum
+jSrchNum = IIF(!BETW(jSrchNum,1,9),1,jSrchNum)
+IF USED("configlc") .and. jFormNum>0
+  REPL fmisc004 WITH STUFF(configlc.fmisc004, jFormNum, 1, STR(jSrchNum,1)) IN configlc
+  =TABLEUPDATE(.T.,.T.,"configlc")
+ENDIF
+
+PROCEDURE RecalcCBK && ==========================================================================
+*// recalculates running balances in CB and updates CB if needed
+LPARA jBank, jType, QuietMode  && [ALL] or [RECON]
+LOCAL jAlias, jEndRunBal, jDebits, jCredits, jStartBal, jReconDate, jStarted, jRecno, jCnt, jMessg, jMessg2
+jAlias = ALIAS()
+IF USED("xcheckbk")
+  USE IN xCheckBk
+ENDIF
+SELE 0
+USE checkbk AGAIN ALIAS xCheckBk
+SELE xCheckBk
+SET ORDER TO bnk_id_a DESC IN xCheckBk
+SET KEY TO STR(jBank,2) IN xCheckBk
+GO TOP  && last record
+STORE 0  TO jEndRunBal, jDebits, jCredits, jStartBal, jRecno, jCnt
+STORE {} TO jReconDate
+jEndRunBal = runbal
+SCAN && grab curr last runbal, scan backwards summing, find first recon grab runbal and exit
+  IF banknum # jBank
+    LOOP
+  ENDIF
+  jCnt     = jCnt     + 1
+  jCredits = jCredits + credit
+  jDebits  = jDebits  + debit
+  IF [RECON]$xCheckBk.type .and. xCheckBk.recondate # {}
+    jStartBal  = xCheckBk.runbal
+    jReconDate = xCheckBk.recondate
+    jRecno     = RECNO()
+    EXIT
+  ENDIF
+ENDSCAN
+STORE [Check Book Balance OK @ ]+ALLT(TRAN(jEndRunBal ,[999,999,999.99]))+[   no changes needed.] TO jMessg
+jType  = IIF(jCnt>0 .and. jRecno = 0, [ALL], jType)  && force all if records found but no completed recon
+jRecno = IIF([ALL] $ jType, 1, jRecno)
+jMessg2= []
+*WAIT STR(jRecno,3)+STR(jStartBal - jDebits + jCredits,10,2)+STR(jEndRunBal,10,2) WIND
+jFinalRunBad = jStartBal - jDebits + jCredits # jEndRunBal
+IF 1=1  &&[ALL] $ jType
+  SELE xCheckBk
+  SET ORDER TO bnk_id_a ASCE IN xCheckBk
+  SET KEY TO STR(jBank,2) IN xCheckBk
+  GO TOP  && last record
+  STORE 0  TO jRunBal, jDebits, jCredits, jStartBal
+  jStarted = [ALL] $ jType  && start at begin don't look for recon
+  SCAN && find first recon and update from there
+    IF xCheckBk.banknum # jBank
+      LOOP
+    ENDIF
+    IF jRecno > 0 .and. RECNO() < jRecno
+      LOOP
+    ENDIF
+    IF !jStarted
+      IF [RECON]$xCheckBk.type .and. xCheckBk.recondate # {}
+        jRunBal  = xCheckBk.runbal
+        jStarted = .T.
+      ENDIF
+    ELSE
+      IF xCheckBk.runbal # jRunBal + xCheckBk.credit - xCheckBk.debit
+        IF ![ID #] $ jMessg
+          jNewTxtBal = jRunBal + xCheckBk.credit - xCheckBk.debit
+          STORE [Check Book Register Balance adjusted, starting at ID # ]+ALLT(STR(xCheckBk.idnum))+zCrCr;
+            +[Run Bal was:  ]+ALLT(TRAN(xCheckBk.runbal,[999,999,999.99]))+[   Changed to:  ];
+            +ALLT(TRAN(jNewTxtBal ,[999,999,999.99]))+zCrCr;
+            +[Adjusted by: ]+ALLT(TRAN(jNewTxtBal-xCheckBk.runbal  ,[999,999,999.99])) TO jMessg
+        ENDIF
+        IF EMPT(jMessg2)
+          STORE [ID#]+ALLT(STR(xCheckBk.idnum))+[ ]+ALLT(TRAN(xCheckBk.runbal,[999,999,999.99]));
+            +[ to ]+ALLT(TRAN(jNewTxtBal ,[999,999,999.99])) TO jMessg2
+        ENDIF
+        REPL xCheckBk.runbal WITH jRunBal + xCheckBk.credit - xCheckBk.debit IN xCheckBk
+      ENDIF
+      jRunBal = xCheckBk.runbal
+    ENDIF
+  ENDSCAN
+ENDIF
+IF !EMPT(jMessg2)
+  SELE xCheckBk
+  APPE BLANK
+  REPL banknum WITH jBank, date WITH DATE(), note  WITH jMessg2, type WITH [AUTOADJUST], runbal WITH jRunBal, dcleared WITH DATE();
+    ,idnum WITH GenCheckIdNum(jBank), payee WITH [RunBal adjusted] IN xCheckBk
+ENDIF
+USE IN xCheckBk
+IF !EMPT(jAlias)
+  SELE (jAlias)
+ENDIF
+IF ![QUIET] $ QuietMode
+  =pwaitMB(jMessg)
+ENDIF
+RETURN
+
+PROCEDURE XlsMaxWarn &&====================================================================================
+LPARA jType,jxCnt
+IF ([XLS]$UPPE(jType).or.[XL5]$UPPE(jType)) .and. jxCnt > 15000
+  =pwaitMB([ADVISORY:   ]+ALLT(TRAN(jxCnt,[999,999,999]))+[ items are selected for Export. ]+zCrCr;
+    +[MS Excel   may not be able to import more than 15,000 items.]+zCrCr;
+    +[Consider exporting 1st to a DBF table,  then in Excel,  Open the exported DBF table.]+zCrCr;
+    +[(Note:  Make sure Excel's open dialog  "File Type"  is  DBF)] )
+ENDIF
+
+FUNCTION EndCountCr &&-----------------------------------------
+PARA cTxt
+PRIV jCnt,cTxt,jTxt,jPos
+jTxt = ALLT(cTxt)
+jCnt = 0
+zCrLf = CHR(13)+CHR(10)
+IF RIGHT(jTxt,2) = zCrLf
+  jCnt = 1
+  jPos = LEN(jTxt) - 3
+  *WAIT STR(jPos) WIND
+  DO WHILE SUBS(jTxt,jPos,2)=zCrLf
+    jPos = jPos - 2
+    jCnt = jCnt + 1
+  ENDDO
+ENDIF
+RETURN(jCnt)
+
+PROCEDURE BrowGlTrans && --------------------------------------
+LPARA xkey,xTop,xLeft
+LOCAL xAlias, xcnt, ztoff,zloff
+xAlias = ALIAS()
+USE gltrans AGAIN IN 0 ALIAS xgl ORDER src_idnum
+SELE xgl
+SET KEY TO xkey
+COUNT TO xcnt
+IF xcnt < 1
+  USE IN xgl
+  IF !EMPT(xAlias)
+    SELE &xAlias
+  ENDIF
+  RETURN
+ENDIF
+ztoff=FLOOR(xTop/11)
+zloff=FLOOR(xLeft/6)
+DEFI WIND glpick FROM 5+ztoff,5+zloff TO 36+ztoff-configlc.browheight,95+zloff CLOSE FLOAT GROW;
+  TITLE xkey+[  Viewing  G/L TRANS       Esc: Cancel ]
+BROW FIELDS ;
+  glid:13:H=[G/L #], descrip:30:H=[Description], usr_descr:30:H=[User Notes],;
+  kyw=amt*operator:15:P=[99,999,999.99]:H=[Amount], jd=DateExpand(dtrans):14:H=[Trans Date],;
+  type:15:H=[Type], cretrndisc:16:H=[Return / Disc ?];
+  KEY xkey WIND glpick NOEDIT NODELE NOAPPE FONT 'Arial', 8  && &_pBrowFont
+USE IN xgl
+IF !EMPT(xAlias)
+  SELE &xAlias
+ENDIF
+RETURN
+
+  PROCEDURE UpCogsBegInvt &&-------------------------------------
+  jAlias = ALIAS()
+  USE cogsdet AGAIN IN 0 ALIAS xcogs
+  SELE xcogs
+  SET ORDER TO yyyymm
+  GO TOP
+  jYm  = yyyymm
+  jEnd = end_amt + adjust_end
+  SKIP +1
+  SCAN
+    IF NextYyyyMm(jYm) = xcogs.yyyymm
+      REPL xcogs.begin_amt WITH jEnd
+    ENDIF
+    jYm  = yyyymm
+    jEnd = end_amt + adjust_end
+  ENDSCAN
+  USE IN xcogs
+  IF !EMPT(jAlias)
+    SELE &jAlias
+  ENDIF
+
+  FUNCTION NextYyyyMm && ---------------------------------------
+  LPARA jYyMm
+  PRIV y,m
+  IF VAL(RIGH(jYyMm,2))=12
+    y = STR(VAL(LEFT(jYyMm,4))+1,4)
+    m = [01]
+  ELSE
+    y = LEFT(jYyMm,4)
+    m = STRTR(STR(VAL(RIGHT(jYyMm,2))+1,2),[ ],[0])
+  ENDIF
+  RETURN(y+m)
+
+  FUNCTION PrevYyyyMm && ---------------------------------------
+  LPARA jYyMm
+  PRIV y,m
+  IF VAL(RIGH(jYyMm,2))=1
+    y = STR(VAL(LEFT(jYyMm,4))-1,4)
+    m = [12]
+  ELSE
+    y = LEFT(jYyMm,4)
+    m = STRTR(STR(VAL(RIGHT(jYyMm,2))-1,2),[ ],[0])
+  ENDIF
+  RETURN(y+m)
+
+  FUNCTION GetColorNum &&----------------------------------------
+  LPARA TxtColor
+  TxtColor = UPPE(TxtColor)
+  PRIV  NumColor
+  DO CASE
+    CASE INLI(TxtColor,[WHT],[WHITE])
+      NumColor = 16777215
+    CASE INLI(TxtColor,[BLK],[BLACK])
+      NumColor = 0
+    CASE INLI(TxtColor,[RED])
+      NumColor = 255
+    CASE INLI(TxtColor,[GRN],[GREEN])
+      NumColor = 65280
+    CASE INLI(TxtColor,[YEL],[YELLOW])
+      NumColor = 65535
+    CASE INLI(TxtColor,[BLU],[BLUE])
+      NumColor = 16711680
+    CASE INLI(TxtColor,[BABYBLUE])
+      NumColor = 16709099  &&16770000  &&16777088
+    CASE INLI(TxtColor,[LGREY])
+      NumColor = 15066597  &&16777088GridHighLite
+    CASE INLI(TxtColor,[GRIDHIGHLITE])
+      NumColor = 16770000  &&16777088
+    OTHERWISE
+      NumColor = 0
+  ENDCASE
+  RETURN(NumColor)
+
+  FUNCTION BankId2Txt &&----------------------------------------------------
+  LPARA jb,jid
+  DO CASE
+    CASE jb+jid=0
+      RETURN([])
+    CASE jb>0 .and. jid = 0
+      RETURN(ALLT(STR(jb)))
+    CASE jb>0 .and. jid > 0
+      RETURN(ALLT(STR(jb))+[-]+ALLT(STR(jid)))
+  ENDCASE
+
+  FUNCTION Hrs2Hms  &&& -------------------------------------------------------------------------------
+  LPARA jHrs
+  LOCAL xHrs,xMin1,xSec1,xMin2,xMin2
+  STORE 0 TO xHrs,xRem,xMin1,xMin2,xSec1,xSec2
+  xHrs = INT(jHrs)
+  xRem = jHrs - INT(jHrs)
+  xMin1 = xRem * 60
+  xMin2 = INT(xMin1)
+  xSec1 = xMin1 - INT(xMin1)
+  xSec2 = xSec1 * 60
+  *!*	? xhrs  && 8
+  *!*	? xrem  && .47
+  *!*	? xMin1  && 28.20
+  *!*	? xMin2  && 28
+  *!*	? xSec1  && .20
+  *!*	? xSec2 && 12
+  RETURN(STRTR(STR(xHrs,2),[ ],[0])+[:]+STRTR(STR(xMin2,2),[ ],[0])+[:]+STRTR(STR(xSec2,2),[ ],[0]))
+
+  FUNCTION GenInListString &&--------------------------------------------------------------------------
+  LPARA zzitem,zzWidth
+  IF PARA()<2.or.TYPE("zzWidth")#"N"
+    zzWidth = 0
+  ENDIF
+  IF !EMPT(zzitem) .and. OCCURS([,],zzitem) > 0
+    zzitem = ALLT(zzitem)
+    *!*	  IF SUBST(zzitem,1,1) = [,]
+    *!*	    zList = STRTR(zzitem,[,],[],1) && remove comma if leftmost
+    *!*	  ENDIF
+    IF RIGHT(zzitem,1) = [,]
+      zLen   = LEN(zzitem)
+      zzitem = SUBS(zzitem,1,zLen-1) && remove comma if rightmost
+    ENDIF
+    zzitem= STRTR(zzitem, [,,], [,]) &&remove all double commas
+    zzitem= STRTR(zzitem, [ ], []) &&remove all spaces
+    zzitem = STRTR([,]+UPPE(ALLT(zzitem))+[,],[,,],[,])
+    zcommas = OCCURS([,],zzitem)
+    zList = []
+    IF zcommas > 0
+      FOR qqq = 1 TO zcommas
+        zzzval = SUBS(zzitem ,AT([,],zzitem ,qqq),(AT([,],zzitem ,qqq+1)-AT([,],zzitem ,qqq)))
+        zzzval = ALLT(STRTR(zzzval,[,],[])) && ensure this item has no commas
+        j1 = zzzval
+        IF zzWidth = 0
+          zzzval = IIF(qqq>1,[,],[])+["]+ALLT(zzzval)+["]
+        ELSE
+          zzzval = IIF(qqq>1,[,],[])+["]+PADR(zzzval,zzWidth)+["]
+        ENDIF
+        IF !EMPT(j1)
+          zList  = zList + zzzval
+        ENDIF
+      ENDFOR
+    ENDIF
+    *!*	  IF SUBST(zList,1,1) = [,]
+    *!*	    zList = STRTR(zList,[,],[],1) && remove comma if leftmost
+    *!*	  ENDIF
+    RETURN(zList)
+  ELSE
+    zzitem= STRTR(zzitem, [,], [,]) &&remove all commas
+    zzitem= STRTR(zzitem, [ ], []) &&remove all spaces
+    IF zzWidth = 0
+      zzitem = ALLT(zzitem)
+    ELSE
+      zzitem = PADR(zzitem,zzWidth)
+    ENDIF
+    RETURN(["]+zzitem+["])
+  ENDIF
+
+  FUNCTION IsGlidOk &&------------------------------------------------------------------------------
+  LPARA jGlItem,jWatch  && checking ONE gl# at a time  GLACCNTS  MUST BE OPEN
+  PRIV jGlItem, jAlias, jProblem, jGcnt, jSubCnt, jInactCnt,jTxt
+  IF LEN(ALLT(jGlItem))=0 .or. EMPT(jGlItem) && return null if blank
+    RETURN([])
+  ENDIF
+  IF LEN(ALLT(jGlItem))<11 .or. SUBS(jGlItem,6,1)#[-] .or. SUBS(jGlItem,9,1)#[-]
+    jGlItem = IIF(EMPT(jGlItem),["Blank"],jGlItem)
+    RETURN(ALLT(jGlItem)+[  is not a G/L account])
+  ENDIF
+  jWatch = IIF(TYPE("jWatch")#"C",[],jWatch)
+  jAlias = ALIAS()
+  STORE [] TO jProblem, jDescrip
+  STORE 0  TO jGcnt, jSubCnt, jInactCnt
+  SELE glaccnts
+  SET FILTER TO
+  SET ORDER TO glid IN glaccnts
+  SELE glaccnts   && look at all accnts for 5dig match
+  SEEK jGlItem
+  IF FOUND().and.!EMPT(jWatch) && [!DISCOUNT],[!RETURN],[DISCOUNT],[RETURN]
+    jTxt=[]
+    IF [!]$jWatch && must not be
+      IF [DISCOUNT]$jWatch .and. [DISCOUNT]$glaccnts.cretrndisc
+        jTxt = [ can't be a "Discount" type Account.]
+      ENDIF
+      IF [RETURN]$jWatch .and. [RETURN]$glaccnts.cretrndisc
+        jTxt = [ can't be a "Return" type Account.]
+      ENDIF
+      IF [TRADE]$jWatch .and. [TRADE]$glaccnts.cretrndisc
+        jTxt = [ can't be a "Trade" type Account.]
+      ENDIF
+    ELSE && is can't be and it is
+      IF [DISCOUNT]$jWatch .and. ![DISCOUNT]$glaccnts.cretrndisc
+        jTxt = [ needs to be a Discount Account.]
+      ENDIF
+      IF [RETURN]$jWatch .and. ![RETURN]$glaccnts.cretrndisc
+        jTxt = [ needs to be a Return Account.]
+      ENDIF
+    ENDIF
+    IF !EMPT(jTxt)
+      IF !EMPT(jAlias)
+        SELE (jAlias)
+      ENDIF
+      RETURN(jGlItem+jTxt)
+    ENDIF
+  ENDIF
+  SEEK LEFT(jGlItem,5)
+  SCAN WHILE LEFT(glaccnts.glid,5) = LEFT(jGlItem,5)
+    IF glaccnts.glid = jGlItem && exact match
+      jInactCnt = jInactCnt + IIF(glaccnts.linactive, 1, 0)
+      jGcnt     = jGcnt     + 1
+      jDescrip  = [  ]+ALLT(glaccnts.desc)+[ ]
+    ENDIF
+    IF SUBS(jGlItem,6,6)=[-00-00] .and. SUBS(glaccnts.glid,6,6)#[-00-00] .and. !glaccnts.linactive
+      jSubCnt   = jSubCnt   + 1  && must be a sub
+    ENDIF
+  ENDSCAN
+  DO CASE
+    CASE jSubCnt > 0
+      jProblem = jGlItem + jDescrip + [ is a MAIN account but active SUB-Accounts exist.]
+    CASE jGcnt = 0
+      jProblem = jGlItem + [ is a missing or invalid  G/L Account.]
+    CASE jInactCnt > 0
+      jProblem = jGlItem + jDescrip + [ is configured as INACTIVE.]
+    OTHERWISE
+      jProblem = jGlItem + jDescrip + [ OK...]
+  ENDCASE
+  IF !EMPT(jAlias)
+    SELE (jAlias)
+  ENDIF
+  RETURN(jProblem)
+
+  FUNCTION PrePostEval &&------------------------------------------------------------------------------
+  LPARA jItem,oDtr,oStd
+  **// call:  PrePostTxt = PrePostEval([IN]+STR(avinvoic.iinvnum,8))
+  PRIV jRetVal,jAlias,jAcctBad, jProblem,jZeroAmts, jSubCnt, jInactCnt,zba, JDRTCnt, jMinusCnt, jMulti
+  *// handle some exceptions where logic for DISC RETURN TRADE are needed to be reversed
+  jAlias = ALIAS()
+  STORE [] TO jAcctBad, jProblem, jRetVal
+  STORE 0  TO jZeroAmts, jSubCnt, jInactCnt, JMinusDRTCnt, JPlusDRTCnt, jMinusStdCnt, jPlusStdCnt, jNoDTR, jNoStd
+  SELE glaccnts
+  SET FILTER TO
+  SET ORDER TO glid IN glaccnts
+  SELE gltrans
+  SET ORDER TO src_idnum IN gltrans
+  SEEK jItem
+  SCAN WHILE LEFT(jItem,2)+STR(gltrans.idnum,8) = jItem .and. EMPT(jAcctBad)
+    zba       = gltrans.glid
+    jZeroAmts = jZeroAmts + IIF(gltrans.amt=0, 1, 0)
+    *// each cnt is a wrong entry
+    IF !EMPT(gltrans.cretrndisc) && DTR
+      IF odtr = -99  && disallow any DTR gl entries at all  (oDtr OStd is polarity allow)
+        jNoDtr = jNoDtr + 1
+      ELSE
+        JMinusDRTCnt = JMinusDRTCnt + IIF( (gltrans.amt*gltrans.operator) < 0 .and. oDtr > 0, 1, 0)
+        JPlusDRTCnt  = JPlusDRTCnt  + IIF( (gltrans.amt*gltrans.operator) > 0 .and. oDtr < 0, 1, 0)
+      ENDIF
+    ELSE
+      IF oStd = -99  && disallow any DTR gl entries at all  (oDtr OStd is polarity allow)
+        jNoStd = jNoStd + 1
+      ELSE
+        jMinusStdCnt = jMinusStdCnt + IIF( (gltrans.amt*gltrans.operator) < 0 .and. oStd > 0, 1, 0)
+        jPlusStdCnt  = jPlusStdCnt  + IIF( (gltrans.amt*gltrans.operator) > 0 .and. oStd < 0, 1, 0)
+      ENDIF
+    ENDIF
+    STORE 0 TO jGcnt, jSubCnt
+    SELE glaccnts && look at all accnts for 5dig match
+    SEEK LEFT(gltrans.glid,5)
+    SCAN WHILE LEFT(glaccnts.glid,5) = LEFT(gltrans.glid,5)
+      IF glaccnts.glid = gltrans.glid && exact match
+        jInactCnt = jInactCnt + IIF(glaccnts.linactive, 1, 0)
+        jGcnt     = jGcnt     + 1
+      ENDIF
+      IF SUBS(gltrans.glid,6,6)=[-00-00] .and. SUBS(glaccnts.glid,6,6)#[-00-00] .and. !glaccnts.linactive
+        jSubCnt   = jSubCnt   + 1  && must be a sub
+      ENDIF
+    ENDSCAN
+    SELE gltrans
+    IF jGcnt = 0 .or. (jSubCnt+jZeroAmts+jInactCnt+JMinusDRTCnt+JPlusDRTCnt+jPlusStdCnt+jMinusStdCnt+jNoStd+jNoDtr > 0)
+      jAcctBad = zba
+      DO CASE
+        CASE jSubCnt > 0
+          jProblem = [Unable to post to  MAIN  account when active SUB-Accounts exist.]+zCrCr;
+            +[Try deleting entry and adding one of its SUB-account(s). ]
+        CASE jGcnt = 0
+          jProblem = [Unable to post with incomplete or invalid G/L Accounts.]+zCrCr;
+            +[Make sure account # exists in the G/L Master ]+zCrCr;
+            +[Try deleting entry and adding from another G/L account. ]
+        CASE jZeroAmts > 0
+          jProblem = [Unable to post with  G/L item  having 0.00 amount (Zero). ]
+        CASE jNoDtr > 0
+          jProblem = [Unable to post with  G/L DISCOUNT, RETURN or TRADE items. ]
+        CASE jNoStd > 0
+          jProblem = [Unable to post with Standard G/L items. ]
+        CASE JMinusDRTCnt > 0
+          jProblem = [Unable to post with  G/L DISCOUNT, RETURN or TRADE items having negative (-) amounts.  ]+zCrCr;
+            +[These entries must have positive (+) amounts. ]
+        CASE JPlusDRTCnt > 0
+          jProblem = [Unable to post with  G/L DISCOUNT, RETURN or TRADE items having positive (+) amounts.  ]+zCrCr;
+            +[These entries must have negative (-) amounts. ]
+        CASE jMinusStdCnt > 0
+          jProblem = [Unable to post with  Standard G/L items having negative (-) amounts.  ]+zCrCr;
+            +[These entries must have positive (+) amounts. ]
+        CASE jPlusStdCnt > 0
+          jProblem = [Unable to post with  Standard G/L items having positive (+) amounts.  ]+zCrCr;
+            +[These entries must have negative (-) amounts. ]
+        CASE jInactCnt > 0
+          jProblem = [Unable to post.  The G/L account is configured as INACTIVE. ]
+      ENDCASE
+      jRetVal = jAcctBad+jProblem+zCrCr+[Entries may need to be deleted and added again. ]
+      EXIT
+    ENDIF
+  ENDSCAN
+  IF !EMPT(jAlias)
+    SELE (jAlias)
+  ENDIF
+  RETURN(jRetVal)
+
+  FUNCTION DaysHrsMinsSecs && --------------------------------------------------------
+  LPARA jRemain
+  PRIVATE     jDays, jHours, jMinutes, jSeconds, jSec, jRemain, cdays, cHours, cMinutes, cSeconds
+  STORE 0  TO jDays, jHours, jMinutes, jSeconds
+  STORE [] TO cdays, cHours, cMinutes, cSeconds
+  IF jRemain > 86359 && days
+    jDays   = INT(jRemain / 86400)
+    jRemain = jRemain - (jDays * 86400)
+    cdays   = IIF(jDays>0,ALLT(STR(jDays))+[d ],[])
+  ENDIF
+  IF jRemain > 3559 && hrs
+    jHours   = INT(jRemain / 3600)
+    jRemain  = jRemain - (jHours * 3600)
+    cHours   = IIF(jHours>0,ALLT(STR(jHours))+[h ],[])
+  ENDIF
+  IF jRemain > 59 && min
+    jMinutes = INT(jRemain / 60)
+    jRemain  = jRemain - (jMinutes * 60)
+    cMinutes = IIF(jMinutes>0,ALLT(STR(jMinutes))+[m ],[])
+  ENDIF
+  cSeconds = ALLT(STR(jRemain))+[s ] && always show seconds even if zero
+  RETURN(cdays+cHours+cMinutes+cSeconds)
+
+  FUNCTION GetWoTailNum && -------------------------------------------------------
+  LPARA jWoNum && passes task.wonum
+  IF SEEK(STR(jWoNum,8),[avwo_mtr],[wo_num])
+    RETURN(avwo_mtr.tail_num)
+  ELSE
+    RETURN(SPAC(8))
+  ENDIF
+
+  FUNCTION TransTypeText &&----------------------------------------------------
+  *// Computer Check,HandWritten Check,Bank / Debit Card,Automatic Debit,Bank Transfer,Other
+  LPARAM zt,zl
+  zl = UPPE(zl)
+  LOCAL jType
+  *// (PayTypeText(type,[short]))
+  DO CASE
+    CASE [IN]$UPPE(zt)
+      jType = IIF([S]$zl,[INV],[Invoice])
+    CASE [AJ]$UPPE(zt)
+      jType = IIF([S]$zl,[ADJ],[GlAdj])
+    CASE [CA]$UPPE(zt)
+      jType = IIF([S]$zl,[CA],[CustAdj])
+    CASE [CM]$UPPE(zt)
+      jType = IIF([S]$zl,[CCM],[CustCM])
+    CASE [VA]$UPPE(zt)
+      jType = IIF([S]$zl,[VA],[VendAdj]) && misc debit from vendor pay
+    CASE [PE]$UPPE(zt)
+      jType = IIF([S]$zl,[P&E],[P&E])
+    OTHERWISE
+      jType = IIF([S]$zl,[UNK],[UNKNOWN])
+  ENDCASE
+  RETURN(jType)
+
+  FUNCTION PayTypeText &&----------------------------------------------------
+  *// Vendor Checks / payments
+  *// Computer Check,HandWritten Check,Bank / Debit Card,Automatic Debit,Bank Transfer,Other
+  LPARAM zt,zl
+  LOCAL jType
+  *// (PayTypeText(type,[short]))
+  *// DEPOSIT  CHECK  ADJUST  RECON
+  DO CASE
+    CASE [HAND]$UPPE(zt)
+      jType = IIF([S]$zl,[HCK],ALLT(zt))  && ~MISC~
+    CASE [COMPUTER]$UPPE(zt)
+      jType = IIF([S]$zl,[CCK],ALLT(zt))
+    CASE [DEBIT CARD]$UPPE(zt)
+      jType = IIF([S]$zl,[BCD],ALLT(zt))
+    CASE [AUTOMATIC]$UPPE(zt)
+      jType = IIF([S]$zl,[ADB],ALLT(zt))
+    CASE [TRANSFER]$UPPE(zt)
+      jType = IIF([S]$zl,[BKT],ALLT(zt))
+    CASE [~MISC~]$UPPE(zt)
+      jType = IIF([S]$zl,[MDB],ALLT(zt)) && misc debit from vendor pay
+    CASE [AUTOADJUST]$UPPE(zt)
+      jType = IIF([S]$zl,[ADJ],ALLT(zt))
+    CASE [OTHER]$UPPE(zt)
+      jType = IIF([S]$zl,[OTH],ALLT(zt))
+    OTHERWISE
+      jType = IIF([S]$zl,[UNK],[UNKNOWN])
+  ENDCASE
+  RETURN(jType)
+
+  FUNCTION ChkTypeText &&----------------------------------------------------
+  LPARAM zt,zc,zd,zp,zl
+  LOCAL jType
+  jType = []
+  *// (ChkTypeText( type, checknum, depkey, pmtrefnum, [short] ))
+  *//               char  num       num     char       char
+  *// DEPOSIT  CHECK  ADJUST  RECON
+  zp = IIF(EMPT(zp),[Unk],ALLT(zp))
+  zSep = [-]
+  DO CASE
+    CASE [DEPOSIT]$zt
+      jType = IIF([S]$zl,[DEP],ALLT(zt))+zSep+n_s(zd)
+    CASE [COMPUTER CHECK]$UPPE(zt)
+      jType = IIF([S]$zl,[CCK],ALLT(zt))+zSep+n_s(zc)
+    CASE [VOID]$UPPE(zt).and.!EMPT(zc)
+      jType = IIF([S]$zl,[VOI],ALLT(zt))+zSep+n_s(zc)  && void check
+    CASE [VOID]$UPPE(zt)
+      jType = IIF([S]$zl,[VOI],ALLT(zt))+zSep+ALLT(zp)  && void check
+    CASE [STOP]$UPPE(zt)
+      jType = IIF([S]$zl,[STP],ALLT(zt))+zSep+ALLT(zp) && stop pmt
+    CASE [HAND]$UPPE(zt)
+      jType = IIF([S]$zl,[HCK],ALLT(zt))+zSep+ALLT(zp)
+    CASE [DEBIT CARD]$UPPE(zt)
+      jType = IIF([S]$zl,[BCD],ALLT(zt))+zSep+ALLT(zp)
+    CASE [AUTOMATIC]$UPPE(zt)
+      jType = IIF([S]$zl,[ADB],ALLT(zt))+zSep+ALLT(zp)
+    CASE [TRANSFER]$UPPE(zt)
+      jType = IIF([S]$zl,[BKT],ALLT(zt))+zSep+ALLT(zp)
+    CASE [~MISC~]$UPPE(zt)
+      jType = IIF([S]$zl,[MDB],ALLT(zt))+zSep+ALLT(zp) && misc debit from vendor pmt
+    CASE [OTHER]$UPPE(zt)
+      jType = IIF([S]$zl,[OTH],ALLT(zt))+zSep+ALLT(zp)
+    CASE [RECON]$zt
+      jType = IIF([S]$zl,[RCN],ALLT(zt))+zSep+ALLT(zp)
+    CASE [AUTOADJUST]$zt
+      jType = IIF([S]$zl,[AUTO ADJUST],ALLT(zt))  &&+zSep+ALLT(zp)
+    CASE [ADJ]$zt
+      jType = IIF([S]$zl,[ADJ],ALLT(zt))+zSep+ALLT(zp)
+    OTHERWISE
+      jType = IIF([S]$zl,[UNK],[UNKNOWN])
+  ENDCASE
+  RETURN(jType)
+
+  PROCEDURE GenVendStatText &&---------------------------------------------------------
+  LPARAM zvmnem
+  =zwindon('Gathering  Vendor  Data')
+  LOCAL zvmnem,wts0,wts1,wts2,wts3,wts4,wts5,wts6,wts7,wts8,wts9,zcll,zcla,zoi,zow,zAlias,zpd
+  zAlias = ALIAS()
+  STORE 0 TO zcl,zoi,zow,cbal,zpd
+  RedFlag = .F.
+  STOR [] TO wts1,wts2,wts3,wts4,wts5,wts6,wts7,wts8,wts9,wts0,zvname
+  SELE 0
+  USE avvendor AGAIN ALIAS xvvendor
+  IF SEEK(UPPE(zvmnem),[xvvendor],[avvmnem])  && +ALLT(SET("CURR",1))
+    zvname = ALLT(xvvendor.vname)
+  ENDIF
+  SELE 0
+  USE configlc AGAIN ALIAS xonfiglc
+  SELE xonfiglc
+  REPL fdumbmem2 WITH []
+  IF !EMPT(zvname)
+    zvname = [Vendor:  ]+zvname+zCrCr
+  ENDIF
+  SELE 0
+  USE checkdet AGAIN ALIAS xcheckdet
+  SET ORDER TO unpost_cus IN xcheckdet
+  IF SEEK(UPPE(zvmnem) ,[xcheckdet],[unpost_vnd]) && wip
+    SELE xonfiglc
+    REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + [Pending Payments.............................................]+zCrLf IN xonfiglc
+    zttl = 0
+    SELE xcheckdet
+    SCAN WHILE UPPE(xcheckdet.vmnem) = UPPE(zvmnem)
+      REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + xcheckdet.vmnem +[ ]+DTOC(xcheckdet.checkdate)+[  # ]+;
+        PADR(ALLT(n_s(xcheckdet.depkey)),7)+[ ]+TRAN(-1*ABS(xcheckdet.amount),[9,999,999,999.99])+zCrLf
+      zttl = zttl + xcheckdet.amount
+    ENDSCAN
+    IF zttl > 0
+      zpd = zttl
+      wts2=PADL([Pending Deposits Totals: ]+TRAN(-1*ABS(zttl),[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xcheckdet
+  SELE 0
+  USE avinvoic AGAIN ALIAS xvinvoic
+  IF SEEK(UPPE(zvmnem),[xvvendor],[acvmnem])  && +ALLT(SET("CURR",1))
+    wts1 = PADL([Vendor's Account Balance: ]+TRAN(xvvendor.cbalance,[9,999,999,999.99]),45)+zCrLf
+    cbal = xvvendor.cbalance
+    IF xvvendor.l_credlim && has a credit limit
+      wts3 = PADL([Credit Limit: ]+TRAN(xvvendor.ccredlim,[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+    zcla = xvvendor.ccredlim
+    zcll = xvvendor.l_credlim
+    IF xvvendor.l_maxinvoi
+      wts4 = PADL([Max WO/Invoice Allowed: ]+TRAN(xvvendor.maxinvoice,[9,999,999,999.99]),45)+zCrLf
+      IF xvinvoic.itotal > xvvendor.maxinvoice
+        RedFlag = .T.
+      ENDIF
+    ENDIF
+    IF !EMPT(xvvendor.cterms)
+      wts5 = [Account Terms:  ]+ALLT(xvvendor.cterms)  && [  Terms=]
+    ENDIF
+    IF xvvendor.l_oos
+      wts8 = IIF(!EMPT(wts5),[   ],[]) + [Vendor is  Out Of State]+zCrLf+zCrLf
+    ENDIF
+    IF EMPT(wts8)
+      wts5 = wts5 + zCrLf+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xvvendor
+  SET ORDER TO vmnem_nopo IN xvinvoic
+  IF SEEK(UPPE(zvmnem) ,[xvinvoic],[vmnem_nopo]) && wip
+    SELE xonfiglc
+    REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + [Open Invoices ...........................................]+zCrLf IN xonfiglc
+    zttl = 0
+    SELE xvinvoic
+    SCAN WHILE UPPE(xvinvoic.ivmnem) = UPPE(zvmnem)
+      REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + xvinvoic.ivmnem +[ ]+DTOC(xvinvoic.idate)+[  # ]+;
+        PADR(ALLT(n_s(xvinvoic.iinvnum)),7)+[ ]+TRAN(xvinvoic.itotal,[9,999,999,999.99])+[   ]+ibrief+CHR(13)
+      zttl = zttl + xvinvoic.itotal
+    ENDSCAN
+    IF zttl > 0
+      zoi = zttl
+      wts6=PADL([Open Invoice Totals: ]+TRAN(zttl,[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xvinvoic
+  SELE 0
+  USE avwo_mtr AGAIN ALIAS xvwo_mtr
+  SET ORDER TO vmnem_nofi IN xvwo_mtr
+  IF SEEK(UPPE(zvmnem) ,[xvwo_mtr],[vmnem_nofi])  && wip not invoiced
+    SELE xonfiglc
+    REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + [Open Work Orders ........................................]+zCrLf IN xonfiglc
+    zttl = 0
+    SELE xvwo_mtr
+    SCAN WHILE UPPE(xvwo_mtr.vmnem) = UPPE(zvmnem)
+      REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + xvwo_mtr.vmnem +[ ]+DTOC(xvwo_mtr.open_date)+[  # ]+;
+        PADR(ALLT(n_s(xvwo_mtr.wo_num)),7)+[ ]+TRAN(xvwo_mtr.sell_ttl,[9,999,999,999.99])+[   ]+b_descrip+CHR(13)
+      zttl = zttl + xvwo_mtr.sell_ttl
+    ENDSCAN
+    IF zttl > 0
+      zow = zttl
+      wts7=PADL([Open Work Order Totals: ]+TRAN(zttl,[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xvwo_mtr
+  IF zcll .and. zcla>0 .and. ( (cbal+zoi+zow) - zpd ) > zcla
+    wts0 = [ADVISORY...  VENDOR's  ACCOUNT  NEEDS  ATTENTION]+zCrLf+zCrLf
+  ENDIF
+  wts9 = PADL([Status: ]+TRAN(cbal+zoi+zow-zpd,[9,999,999,999.99]),45)+[  ];
+    +IIF(zcll.and.!EMPT(wts0),[C/L = ]+ALLT(TRAN(zcla,[9,999,999,999.99])),[])+zCrLf
+  SELE xonfiglc
+  REPL xonfiglc.fdumbmem2 WITH zvname+ALLT(wts0+wts5+wts8+wts3+wts4+zCrLf+wts1+wts6+wts7+wts2+wts9)+zCrLf+zCrLf + ALLT(xonfiglc.fdumbmem2) IN xonfiglc
+  USE IN xonfiglc
+  IF !EMPT(zAlias )
+    SELE &zAlias
+  ENDIF
+  =zwindoff(.2)
+  RETURN
+
+  PROCEDURE GenCustStatText &&---------------------------------------------------------
+  LPARAM zCmnem
+  =zwindon('Gathering  Customer  Data')
+  LOCAL zCmnem,wts0,wts1,wts2,wts3,wts4,wts5,wts6,wts7,wts8,wts9,zcll,zcla,zoi,zow,zAlias,zpd
+  zAlias = ALIAS()
+  STORE 0 TO zcl,zoi,zow,cbal,zpd
+  RedFlag = .F.
+  STOR [] TO wts1,wts2,wts3,wts4,wts5,wts6,wts7,wts8,wts9,wts0,zcname
+  SELE 0
+  USE avcustom AGAIN ALIAS xvcustom
+  IF SEEK(UPPE(zCmnem),[xvcustom],[accmnem])  && +ALLT(SET("CURR",1))
+    zcname = ALLT(IIF(LEFT(xvcustom.cperbus,1)=[P],xvcustom.cperson,xvcustom.cname))
+  ENDIF
+  SELE 0
+  USE configlc AGAIN ALIAS xonfiglc
+  SELE xonfiglc
+  REPL fdumbmem2 WITH []
+  IF !EMPT(zcname)
+    zcname = [Customer:  ]+zcname+zCrCr
+  ENDIF
+  SELE 0
+  USE depdet AGAIN ALIAS xdepdet
+  SET ORDER TO unpost_cus IN xdepdet
+  IF SEEK(UPPE(zCmnem) ,[xdepdet],[unpost_cus]) && wip
+    SELE xonfiglc
+    REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + [Pending Deposits.............................................]+zCrLf IN xonfiglc
+    zttl = 0
+    SELE xdepdet
+    SCAN WHILE UPPE(xdepdet.cmnem) = UPPE(zCmnem)
+      REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + xdepdet.cmnem +[ ]+DTOC(xdepdet.transdate)+[  # ]+;
+        PADR(ALLT(n_s(xdepdet.depkey)),7)+[ ]+TRAN(-1*ABS(xdepdet.amount),[9,999,999,999.99])+zCrLf
+      zttl = zttl + xdepdet.amount
+    ENDSCAN
+    IF zttl > 0
+      zpd = zttl
+      wts2=PADL([Pending Deposits Totals: ]+TRAN(-1*ABS(zttl),[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xdepdet
+  SELE 0
+  USE avinvoic AGAIN ALIAS xvinvoic
+  IF SEEK(UPPE(zCmnem),[xvcustom],[accmnem])  && +ALLT(SET("CURR",1))
+    wts1 = PADL([Customer's Account Balance: ]+TRAN(xvcustom.cbalance,[9,999,999,999.99]),45)+zCrLf
+    cbal = xvcustom.cbalance
+    IF xvcustom.l_credlim && has a credit limit
+      wts3 = PADL([Credit Limit: ]+TRAN(xvcustom.ccredlim,[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+    zcla = xvcustom.ccredlim
+    zcll = xvcustom.l_credlim
+    IF xvcustom.l_maxinvoi
+      wts4 = PADL([Max WO/Invoice Allowed: ]+TRAN(xvcustom.maxinvoice,[9,999,999,999.99]),45)+zCrLf
+      IF xvinvoic.itotal > xvcustom.maxinvoice
+        RedFlag = .T.
+      ENDIF
+    ENDIF
+    IF !EMPT(xvcustom.cterms)
+      wts5 = [Account Terms:  ]+ALLT(xvcustom.cterms)  && [  Terms=]
+    ENDIF
+    IF xvcustom.l_oos
+      wts8 = IIF(!EMPT(wts5),[   ],[]) + [Customer is  Out Of State]+zCrLf+zCrLf
+    ENDIF
+    IF EMPT(wts8)
+      wts5 = wts5 + zCrLf+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xvcustom
+  SET ORDER TO cmnem_nopo IN xvinvoic
+  IF SEEK(UPPE(zCmnem) ,[xvinvoic],[cmnem_nopo]) && wip
+    SELE xonfiglc
+    REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + [Open Invoices ...........................................]+zCrLf IN xonfiglc
+    zttl = 0
+    SELE xvinvoic
+    SCAN WHILE UPPE(xvinvoic.icmnem) = UPPE(zCmnem)
+      REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + xvinvoic.icmnem +[ ]+DTOC(xvinvoic.idate)+[  # ]+;
+        PADR(ALLT(n_s(xvinvoic.iinvnum)),7)+[ ]+TRAN(xvinvoic.itotal,[9,999,999,999.99])+[   ]+ibrief + zCrLf
+      zttl = zttl + xvinvoic.itotal
+    ENDSCAN
+    IF zttl > 0
+      zoi = zttl
+      wts6=PADL([Open Invoice Totals: ]+TRAN(zttl,[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xvinvoic
+  SELE 0
+  USE avwo_mtr AGAIN ALIAS xvwo_mtr
+  SET ORDER TO cmnem_nofi IN xvwo_mtr
+  IF SEEK(UPPE(zCmnem) ,[xvwo_mtr],[cmnem_nofi])  && wip not invoiced
+    SELE xonfiglc
+    REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + [Open Work Orders ........................................]+zCrLf IN xonfiglc
+    zttl = 0
+    SELE xvwo_mtr
+    SCAN WHILE UPPE(xvwo_mtr.cmnem) = UPPE(zCmnem)
+      REPL xonfiglc.fdumbmem2 WITH xonfiglc.fdumbmem2 + xvwo_mtr.cmnem +[ ]+DTOC(xvwo_mtr.open_date)+[  # ]+;
+        PADR(ALLT(n_s(xvwo_mtr.wo_num)),7)+[ ]+TRAN(xvwo_mtr.sell_ttl,[9,999,999,999.99])+[   ]+b_descrip + zCrLf
+      zttl = zttl + xvwo_mtr.sell_ttl
+    ENDSCAN
+    IF zttl > 0
+      zow = zttl
+      wts7=PADL([Open Work Order Totals: ]+TRAN(zttl,[9,999,999,999.99]),45)+zCrLf
+    ENDIF
+  ENDIF
+  USE IN xvwo_mtr
+  IF zcll .and. zcla>0 .and. ( (cbal+zoi+zow) - zpd ) > zcla
+    wts0 = [ADVISORY...  CUSTOMER's  ACCOUNT  NEEDS  ATTENTION]+zCrLf+zCrLf
+  ENDIF
+  wts9 = PADL([Status: ]+TRAN(cbal+zoi+zow-zpd,[9,999,999,999.99]),45)+[  ];
+    +IIF(zcll.and.!EMPT(wts0),[C/L = ]+ALLT(TRAN(zcla,[9,999,999,999.99])),[])+zCrLf
+  SELE xonfiglc
+  REPL xonfiglc.fdumbmem2 WITH zcname+ALLT(wts0+wts5+wts8+wts3+wts4+zCrLf+wts1+wts6+wts7+wts2+wts9)+zCrLf+zCrLf + ALLT(xonfiglc.fdumbmem2) IN xonfiglc
+  USE IN xonfiglc
+  IF !EMPT(zAlias )
+    SELE &zAlias
+  ENDIF
+  =zwindoff(.2)
+  RETURN
+
+  PROCEDURE StripTrail0 &&--------------------------------------------
+  PARA jnum
+  PRIV cnum
+  IF TYPE("jnum") # 'N'
+    RETURN(jnum)
+  ENDIF
+  FOR kkk = 1 TO 9
+    cnum = ALLT(STR(jnum,22,10-kkk))
+    IF !INLI(RIGHT(cnum,1),[0])
+      EXIT
+    ENDIF
+  ENDFOR
+  RETURN(ALLT(cnum))
+
+  PROCEDURE atc_hist &&++++++++++++++++++++++++++++++
+  *// ATC_HIST  DATE TIME EMNEM PER_END TC_KEY CHANGES CATEGORY BANKAMT ACTION
+  *//            1    2    3     4       5      6       7        8       9
+  PARA ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9
+  PRIV ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9,m_alias
+  IF TYPE("_pUserId")=[U]
+    RELE _pUserId
+    PUBLIC _pUserId
+    zpuse = ALLT(STRTR(SYS(0),[#],[])) && machine name
+    IF LEN(zpuse)>3
+      _pUserId = zpuse
+    ELSE
+      _pUserId = [Unknown]
+    ENDIF
+  ENDIF
+  m_alias = ALIAS()
+  =open_dbf("ta_hist",3)
+  IF USED('ta_hist')
+    SELE ta_hist
+    APPE BLANK
+    REPLACE ;
+      date  WITH ph1, time     WITH ph2, emnem WITH ph3, userid WITH _pUserId;
+      per_end WITH ph4, tc_key WITH ph5,  changes  WITH ph6, category WITH ph7;
+      bankamt WITH ph8, action WITH ph9
+    SELE ta_hist
+    =TABLEUPDATE(.T.,.T.,"ta_hist")
+  ENDIF
+  IF !EMPT(m_alias)
+    SELE (m_alias)
+  ENDIF
+  RETURN
+
+  FUNCTION ta_Rnd_Hrs &&------------------------------------------------------------
+  LPAR jHrs,jType
+  PRIV jret,jop
+  jret = jHrs
+  IF LEFT(ALLT(jType),1)=[1] .or. EMPT(jType)
+    RETURN(jret)
+  ENDIF
+  DO CASE
+    CASE LEFT(ALLT(jType),1)=[2]
+      jop = .1
+      jret = ROUND(jHrs,2)
+    CASE LEFT(ALLT(jType),1)=[3]
+      jop = .25
+      jret = ROUND(jHrs,2)
+    CASE LEFT(ALLT(jType),1)=[4]
+      jop = .5
+      jret = ROUND(jHrs,2)
+    CASE LEFT(ALLT(jType),1)=[5]
+      jop = 1
+      jret = ROUND(jHrs,2)
+  ENDCASE
+  DO WHILE .T.
+    IF 0=MOD(jret,jop)
+      EXIT
+    ELSE
+      jret = jret + .01
+    ENDIF
+  ENDDO
+  RETURN(jret)
+
+  FUNCTION ta_ago && ---------------------------
+  LPARA jHrs
+  PRIV ztext,zdays,zdayceil
+  *// returns a char str of how long ago
+  IF TYPE("jhrs")#[N]
+    RETURN
+  ENDIF
+  zdays = ABS(jHrs/24)
+  DO CASE
+    CASE zdays < 1
+      ztext = ALLT(STR(jHrs,5,2))+[ h]
+    CASE BETW(zdays,1,7)
+      ztext = ALLT(TRAN(zdays,[999.9]))+[ d]
+    CASE BETW(zdays,8,30)
+      ztext = ALLT(TRAN(zdays/7,[999.9]))+[ w]
+    CASE BETW(zdays,30,365)
+      ztext = ALLT(TRAN(ROUN(zdays/30.416,1),[999.9]))+[ m]
+    CASE zdays > 365
+      ztext = ALLT(TRAN(ROUN(zdays/365,1),[999.9]))+[ y]
+    OTHERWISE
+      ztext = []
+  ENDCASE
+  RETURN(STRTR(ztext,[],[]))
+
+  PROCEDURE TaRegSet &&--------------------------
+  LPARAM jMode
+  LOCAL jAlias,jreg,jltt,jdate,jCnt,j45Cnt
+  SET TALK OFF
+  jAlias=ALIAS()
+  jreg = [T]+n_s((VAL(ALLT(configav.fsysserial))-1972)*1792)
+  SELE 0
+  USE config2 AGAIN ALIAS xfig2
+  REPLA xfig2.ltt WITH !EMPT(xfig2.tt_reg) .and. ALLT(xfig2.tt_reg)==jreg
+  *// sets flags every time  ATC forms are run  Dynamically authenticating registration
+  *// if not registered.......
+  *// put in eval mode if more than 200 entries are 60 days old
+  *// NO eval if more than 1000 entries
+  IF !xfig2.ltt && if not registered
+    SELE 0
+    USE empclock AGAIN ALIAS xmpclock
+    SELE xmpclock
+    jdate = {12/31/2200}
+    STORE 0 TO jCnt,j60Cnt
+    SCAN
+      jCnt   = jCnt + 1
+      jdate  = IIF(xmpclock.date_i # {} .and. xmpclock.date_i < jdate, xmpclock.date_i, jdate ) && oldest date
+      j60Cnt = j60Cnt + IIF(xmpclock.date_i # {} .and. xmpclock.date_i < DATE()-60, 1, 0 ) && count older than 60
+    ENDSCAN
+    USE IN xmpclock
+    SELE xfig2
+    n1 = 600 + IIF(FILE("C:\SPNTT500.ATC"),600,0)
+    n2 = 100 + IIF(FILE("C:\SPNTT500.ATC"),100,0)
+    cDaysStr = [  ]+ALLT(STR(jCnt))+[ / ]+ALLT(STR(n1))+[     ]+ALLT(STR(j60Cnt))+[ / ]+ALLT(STR(n2))+[ ]
+    ddate    = IIF(!EMPT(xfig2.kcolcd ),xfig2.kcolcd + 247,{}) && offset date
+    DO CASE
+      CASE jCnt > n1 .or. j60Cnt > n2 .or. ABS(DATE()-ddate) > 100
+        IF ![QUIET]$jMode
+          =pwaitMB([ATC is PAST Evaluation for 1 or more reason(s) ... ]+zCrCr;
+            +n_s(jCnt  )+[  Entries found,   ]+n_s(n1)+[  total allowed]+zCrCr;
+            +n_s(j60Cnt)+[  Entries over 60 days,   ]+n_s(n2)+[ allowed]+zCrCr;
+            +[In use for  ]+n_s(ABS(DATE()-ddate))+[  days   100 allowed],[ Used   ]+cDaysStr)
+        ENDIF
+        REPL xfig2.tt_stat WITH [PAST EVALUATION ]+cDaysStr  IN xfig2
+      CASE (jCnt > (n1*.7) .or. j60Cnt > (n2*.7)) .and. MOD(jCnt,5)=0  && bark at 70% used  every 5th entry
+        IF ![QUIET]$jMode
+          =pwaitMB([ATC  Evaluation is getting close to expiration  ]+zCrCr;
+            +n_s(jCnt  )+[  Entries found,   ]+n_s(n1)+[  total allowed]+zCrCr;
+            +n_s(j60Cnt)+[  Entries over 60 days,   ]+n_s(n2)+[ allowed]+zCrCr;
+            +[In use for  ]+n_s(ABS(DATE()-ddate))+[  days   100 allowed],[ Used   ]+cDaysStr)
+        ENDIF
+        REPL xfig2.tt_stat WITH [EVALUATION ]+cDaysStr  IN xfig2
+      CASE BETW(jCnt,0,10)
+        IF ![QUIET]$jMode
+          =pwaitMB([Thanks for evaluating CTI's new    Attendance   Time   Clock ]+zCrCr;
+            +[This evaluation allows up to  ]+n_s(n1)+[  entries total,]+zCrCr;
+            +[with no more than  ]+n_s(n2)+[  being older than 60 days from 1st entry   ]+zCrCr;
+            +[Contact  CTI, or click on the help (?)  buttons for more information],[ Used   ]+cDaysStr)
+        ENDIF
+        REPL xfig2.tt_stat WITH IIF(jCnt=0,[NOT STARTED],[EVALUATION])+cDaysStr  IN xfig2
+      CASE jCnt > 20  .and. MOD(jCnt,20)=0  && every 20
+        IF ![QUIET]$jMode
+          =pwaitMB([Thanks for evaluating CTI's new    Attendance   Time   Clock ]+zCrCr;
+            +n_s(jCnt)+[  of  ]+n_s(n1)+[  entries used so far,]+zCrCr;
+            +[Contact  CTI, or click on the help (?)  buttons for more information],[ Used   ]+cDaysStr)
+        ENDIF
+        REPL xfig2.tt_stat WITH [EVALUATION ]+cDaysStr  IN xfig2
+      OTHERWISE
+        *WAIT [ATC  Evaluation  Mode ] WIND TIME .2
+        REPL xfig2.tt_stat WITH [UNKNOWN ]+cDaysStr  IN xfig2
+    ENDCASE
+  ELSE
+    REPL xfig2.tt_stat WITH [REGISTERED] IN xfig2
+  ENDIF
+  USE IN xfig2
+  IF !EMPT(jAlias)
+    SELE &jAlias
+  ENDIF
+
+  FUNCTION IsFontInstalled &&----------------------------------------------
+  LPARA jFont,jDispMssg
+  LOCAL zRetVal,jFont,jDispMssg,jMatch
+  =AFONT(zFonts)  && THESE FONT NAMES ARE CASE SENSITIVE !
+  zCnt = ALEN(zFonts)
+  FOR jjj = 1 TO zCnt
+    IF ALLT(jFont)==ALLT(zFonts(jjj))
+      jMatch = .T.
+      EXIT
+    ENDIF
+  ENDFOR
+  IF !jMatch  &&0=ASCAN(ZFONTS,jFont)
+    IF jDispMssg
+      =pwaitMB([Your computer does not have the following Font installed ...]+CHR(13)+CHR(13);
+        +[Font:   ]+ALLT(jFont)+CHR(13)+CHR(13);
+        +[Some screens or printouts may display incorrectly unless installed]+CHR(13)+CHR(13);
+        +[Install the font or contact Tangoware for assistance.])
+    ENDIF
+    zRetVal = .F.
+  ELSE
+    zRetVal = .T.
+  ENDIF
+  RELE zFonts
+  RETURN(zRetVal)
+
+  FUNCTION IsValid8Time  &&---------------------------------------------------------------------------------
+  LPARA t1
+  LOCAL retval
+  retval = IIF( LEN(ALLT(t1)) < 8, .F., .T. )
+  retval = IIF( t1="  :  :  ", .F., retval )
+  retval = IIF( [ ]$t1, .F., retval )
+  retval = IIF( !BETW(VAL(SUBS(t1,1,2)),00,23),.F., retval)
+  retval = IIF( !BETW(VAL(SUBS(t1,4,2)),00,59),.F., retval)
+  retval = IIF( !BETW(VAL(SUBS(t1,7,2)),00,59),.F., retval)
+  retval = IIF( !SUBS(t1,3,1)=[:], .F., retval)
+  retval = IIF( !SUBS(t1,6,1)=[:], .F., retval)
+  RETURN(retval)
+
+  FUNCTION cText_12_24 &&-----------------------------------------------------------------------------------
+  PARA cjIn,cNoSign
+  PRIV cjIn,cjOut,cNoSign,cxSign
+  IF TYPE("cjin") # "C"
+    RETURN(SPACE(10))
+  ENDIF
+  IF TYPE("_p12Clock") = "U"
+    PUBLIC _p12Clock && makes it false
+  ENDIF
+  IF TYPE("_pNoClockSec") = "U"
+    PUBLIC _pNoClockSec && makes it false
+  ENDIF
+  cxSign = IIF(cjIn > "11:59:59", [ p], [ a])
+  cxSign = IIF(cNoSign.or.EMPT(cjIn), [  ], cxSign)
+  DO CASE
+    CASE _p12Clock .and. VAL( LEFT(cjIn,2) ) > 12
+      zSuffix = SUBS(cjIn, 3, IIF(_pNoClockSec, 3, 6) )
+      zPrefix = STRTR( STR( VAL( LEFT(cjIn,2) ) -12, 2 ) ,[ ] ,[0] )
+      cjOut   = zPrefix + zSuffix
+    OTHERWISE
+      cjOut = SUBS(cjIn, 1, IIF(_pNoClockSec, 5, 8) )
+  ENDCASE
+  DO CASE
+    CASE ALLT(cjOut)==[00:00]
+      RETURN(SPAC(8))
+      *RETURN([xx:xx])
+    CASE ALLT(cjOut)==[00:00:00]
+      RETURN(SPAC(8))
+      *RETURN([xx:xx:xx])
+    OTHERWISE
+      RETURN(cjOut + cxSign)
+  ENDCASE
+
+  FUNCTION DateExpand &&--------------------------------------------------------------------------------------
+  *// 15Feb2003  Fixed  widely reported error.  t1 was sometime not initialized to character data
+  Note:  zPubVar is the name of an optional public mvar to assist
+  Note:  in passing values to/from this procedure
+  PARA d1,t1,zdel,zPubVar
+  PRIV d1,t1,zdel,c1,cdt,CM,cy,zPubVar
+  IF TYPE("d1") # [D]
+    RETURN([Unknown])
+  ENDIF
+  SET TALK OFF
+  zPubVar = IIF(PARAM() < 4 .or. TYPE("zPubVar") # "C" ,[_zzzzz] ,zPubVar )
+  IF TYPE("d1") # [D] .or. EMPT(d1)
+    STORE [] TO (zPubVar)
+    RETURN([])
+  ENDIF
+  IF d1={}
+    STORE [] TO (zPubVar)
+    RETURN([])
+  ENDIF
+  IF PARAM()< 3 .or. TYPE("zDel") # "C"
+    zdel = IIF(!EMPT(SET("MARK")) ,SET("MARK") ,[-] )
+  ENDIF
+  t1   = IIF(PARAM() < 2 .or. TYPE("t1")   # "C" .or. EMPT(t1)   ,[Mmm-dd-yyyy] ,t1 )
+  t1   = STRTR(t1,[YYYY],[yyyy])
+  t1   = STRTR(t1,[DD],[dd])
+  zdel = IIF(PARAM() < 2 .or. TYPE("zdel") # "C"  ,[-] ,zdel)  && force [-]
+  IF RIGHT(t1,3)==[-yy]
+    cy   = SUBS(DTOS(d1),3,2)
+  ELSE
+    cy   = SUBS(DTOS(d1),1,4)
+  ENDIF
+  cdt  = SUBS(DTOS(d1),7,2)
+  CM   = CMONTH(d1)
+  c1   = []
+  DO CASE
+    CASE t1=[dd-mmm-yy]
+      c1=cdt+zdel+LOWER(LEFT(CM,3))+zdel+cy
+    CASE t1=[dd-Mmm-yy]
+      c1=cdt+zdel+PROPER(LEFT(CM,3))+zdel+cy
+    CASE t1=[dd-MMM-yy]
+      c1=cdt+zdel+UPPE(LEFT(CM,3))+zdel+cy
+    CASE t1=[dd-Month-yy]
+      c1=cdt+zdel+PROPER(CM)+zdel+cy
+    CASE t1=[dd-MONTH-yy]
+      c1=cdt+zdel+UPPE(CM)+zdel+cy
+    CASE t1=[mmm-dd-yy]
+      c1=LOWER(LEFT(CM,3))+zdel+cdt+zdel+cy
+    CASE t1=[Mmm-dd-yy]
+      c1=PROPER(LEFT(CM,3))+zdel+cdt+zdel+cy
+    CASE t1=[MMM-dd-yy]
+      c1=UPPE(LEFT(CM,3))+zdel+cdt+zdel+cy
+    CASE t1=[Month-dd-yy]
+      c1=PROPER(CM)+zdel+cdt+zdel+cy
+    CASE t1=[MONTH-dd-yy]
+      c1=UPPE(CM)+zdel+cdt+zdel+cy
+    OTHERWISE
+      c1=cdt+zdel+PROPER(LEFT(CM,3))+zdel+cy
+  ENDCASE
+  STORE c1 TO (zPubVar)
+  RETURN(c1)
+
+  PROCEDURE ThermLabelSetup &&--------------------------------------------------------------
+  LPARAM xnlabelsize,xCalledFrom
+  PRIV zl1,zl2,zl3,zl4,zl5,zl6,zoffz,zfsize,zmax
+  SELE tmplabel
+  zl1=ROUN(TxtWidth(ALLT(line5 ),[Arial],12,[N])*FONTMETRIC(6,[Arial],12,[N]),0)
+  zl2=ROUN(TxtWidth(ALLT(line6 ),[Arial],12,[N])*FONTMETRIC(6,[Arial],12,[N]),0)
+  zl3=ROUN(TxtWidth(ALLT(line7 ),[Arial],12,[N])*FONTMETRIC(6,[Arial],12,[N]),0)
+  zl4=ROUN(TxtWidth(ALLT(line8 ),[Arial],12,[N])*FONTMETRIC(6,[Arial],12,[N]),0)
+  zl5=ROUN(TxtWidth(ALLT(line9 ),[Arial],12,[N])*FONTMETRIC(6,[Arial],12,[N]),0)
+  zl6=ROUN(TxtWidth(ALLT(line10),[Arial],12,[N])*FONTMETRIC(6,[Arial],12,[N]),0)
+  zmax   = 100 * MAX(zl1,zl2,zl3,zl4,zl5,zl6)
+  zoffz  = ( (37500 - zmax) / 2 )
+  zoffz  = 1500 + zoffz
+  zoffz  = MAX(2500, zoffz)  && forces min .25"
+  zfsize = IIF(zmax > 33000, IIF(zmax > 36000, 10, 11), 12)
+  *// xnLabelSize   1 = 2x4L    2 = 4x6 for 2up    3 = 1x2   4 = 4x6   1up
+  *// ORIGINAL THERMAL FRX's ...................................
+  *//   1) bclbs2 CAPAV company 2x1    2) bclbs3 CAPAV Component 2x1
+  *//   3) SKU4x6x2    4) SKU2X1  5) Z2443_2X4 (SKU)   6) Z2443_4X6 (SKU)
+  *//   7) THERM4X6 (addr)   8) ADDR4X6X2 (addr)   9) EL60_2X4 (addr)
+  *//   10) WOCOMP2x4 (WO Comp ID)   11) WOCOMP4x6 (WO Comp ID)
+  *//   All are included in the project
+  *// copies are made of several these, modified and then the copies are actually called
+  ERASE GenTempFile([_Therm_2x4.FRX])
+  ERASE GenTempFile([_Therm_2x4.FRX])
+  ERASE GenTempFile([_el60_24.FRX])
+  ERASE GenTempFile([_el60_24.FRX])
+  ERASE GenTempFile([_Addr4x6x2.FRX])
+  ERASE GenTempFile([_Addr4x6x2.FRX])
+  ERASE GenTempFile([_Therm4x6.FRX])
+  ERASE GenTempFile([_Therm4x6.FRX])
+  IF FILE("el60_2x4.frx") .and. INLI(xnlabelsize,1)  && copy FRX's and reposition with offsets
+    *//  for a standard address label 2 by 4   creates new FRX's for any driver and for Dymo EL60
+    IF USED("_el60_24")
+      USE IN _el60_24
+    ENDIF
+    zFrxFile=GenTempFile([_el60_24.frx]) && parent
+    SELE 0
+    USE el60_2x4.frx
+    COPY TO &zFrxFile
+    USE IN el60_2x4
+    SELE 0
+    USE _el60_24.frx
+    FOR jj2 = 5 TO 10
+      zLine = UPPE([line]+ALLT(STR(jj2,2)))
+      **WAIT STR(jj2)+[       A     ]+zline WIND TIME 2
+      SELE _el60_24
+      GO TOP
+      LOCAT FOR zLine $ UPPE(_el60_24.EXPR)
+      IF FOUND()
+        **WAIT STR(jj2)+[      B     ]+zline WIND TIME 2
+        SELE _el60_24
+        REPLACE _el60_24.hpos WITH zoffz , _el60_24.fontsize WITH zfsize ;
+          , _el60_24.width WITH MIN(37500,37500-zoffz)
+      ENDIF
+    ENDFOR
+    zFrx2File=GenTempFile([_Therm2x4.frx]) && parent
+    SELE _el60_24
+    COPY TO (zFrx2File)
+    SELE 0
+    USE _Therm2x4.frx
+    REPL ALL vpos WITH vpos+1700 FOR vpos > 100
+    LOCATE FOR objtype=9.and.objcode=4
+    IF FOUND()
+      REPL height WITH 22500 && make height of label 2.25 rather than 2 (el60)
+    ENDIF
+    USE IN _Therm2x4
+    USE IN _el60_24
+  ENDIF
+  IF FILE("Addr4x6x2.frx") .and. INLI(xnlabelsize,2)
+    *// for a 2 up 2x4 on a 4x6 label
+    IF USED("_Addr4x6x2")
+      USE IN _Addr4x6x2
+    ENDIF
+    zFrxFile=GenTempFile([_Addr4x6x2.frx]) && parent
+    SELE 0
+    USE Addr4x6x2.frx
+    COPY TO &zFrxFile
+    USE IN Addr4x6x2
+    SELE 0
+    USE _Addr4x6x2.frx
+    FOR jjj = 5 TO 10
+      zLine = [line]+ALLT(STR(jjj,2))
+      LOCAT FOR zLine $ EXPR
+      IF FOUND()
+        REPLACE _Addr4x6x2.hpos WITH zoffz , _Addr4x6x2.fontsize WITH zfsize ;
+          , _Addr4x6x2.width WITH MAX(37500,37500-zoffz)
+        CONTINUE && one more time for 2nd label
+        IF FOUND()
+          REPLACE _Addr4x6x2.hpos WITH zoffz , _Addr4x6x2.fontsize WITH zfsize ;
+            , _Addr4x6x2.width WITH MAX(37500,37500-zoffz)
+        ENDIF
+      ENDIF
+    ENDFOR
+    USE IN _Addr4x6x2
+  ENDIF
+  IF FILE("Therm4x6.frx") .and. INLI(xnlabelsize,4)
+    * // large address label  4x6
+    SELE tmplabel
+    zl1=ROUN(TxtWidth(ALLT(line5 ),[Arial],18,[N])*FONTMETRIC(6,[Arial],18,[N]),0)
+    zl2=ROUN(TxtWidth(ALLT(line6 ),[Arial],18,[N])*FONTMETRIC(6,[Arial],18,[N]),0)
+    zl3=ROUN(TxtWidth(ALLT(line7 ),[Arial],18,[N])*FONTMETRIC(6,[Arial],18,[N]),0)
+    zl4=ROUN(TxtWidth(ALLT(line8 ),[Arial],18,[N])*FONTMETRIC(6,[Arial],18,[N]),0)
+    zl5=ROUN(TxtWidth(ALLT(line9 ),[Arial],18,[N])*FONTMETRIC(6,[Arial],18,[N]),0)
+    zl6=ROUN(TxtWidth(ALLT(line10),[Arial],18,[N])*FONTMETRIC(6,[Arial],18,[N]),0)
+    zmax = 100 * MAX(zl1,zl2,zl3,zl4,zl5,zl6)
+    zoffz= ((57500-zmax)/2)
+    zoffz= 1500 + zoffz
+    zoffz= MAX(2500,zoffz)  && forces min .25"
+    zFrxFile=GenTempFile([_Therm4x6.frx]) && parent
+    zfsize = 18  &&IIF(zMax>33000,IIF(zMax>36000,14,16),18)
+    SELE 0
+    USE Therm4x6.frx
+    COPY TO &zFrxFile
+    USE IN Therm4x6
+    SELE 0
+    USE _Therm4x6.frx
+    FOR jjj = 5 TO 10
+      zLine = [line]+ALLT(STR(jjj,2))
+      LOCAT FOR zLine $ EXPR
+      IF FOUND()
+        REPLACE _Therm4x6.hpos WITH zoffz , _Therm4x6.fontsize WITH zfsize ;
+          , _Therm4x6.width WITH MAX(57500,57500-zoffz)
+      ENDIF
+    ENDFOR
+    USE IN _Therm4x6
+  ENDIF
+
+  PROCEDURE WhereIsWindDir &&==========================================================
+  *-- Local
+  local lnSizeof, lcReturn
+  store 0 to lnSizeof
+  store "" to lcReturn
+
+  *-- Api call
+  Declare GetWindowsDirectory in Kernel32 string lcReturn, integer lnSizeof
+  lcReturn = space(255) + chr(0)
+  lnSizeof = 256
+  GetWindowsDirectory(@lcReturn,lnSizeof)
+
+  *-- Format
+  lcReturn = strtran(left(lcReturn,at(chr(0),lcReturn)),chr(0),"")
+
+  *-- Fer user
+  =messagebox("Windows directory: " + chr(13) + chr(13) +lower(lcReturn),64,"Attention")
+
+  *-- Finished
+  return lcReturn
+
+  PROCEDURE EDS_Action &&------------------------------------------------------------------
+  LPARAM zSystem,zFile,zoperation,l1,l2,l3
+  CLEAR TYPE
+  zzdssdir=ALLT(configlc.dssfolder)
+  l1=ISALPHA(LEFT(zzdssdir,1))
+  l2=SUBST(zzdssdir,2,2)=[:\]
+  IF ![S] $ zoperation .and. (!DIRECTORY(zzdssdir) .or. !(l1.and.l2))
+    =pwaitMB([The EDS storage location   ];
+      +IIF(EMPT(ALLT(zzdssdir)),[(none found)],ALLT(zzdssdir))+[   does not exist or is invalid]+CHR(13)+CHR(13);
+      +[Configure your EDS storage location in the Admin > Local Config > EDS configure form])
+    RETURN
+  ENDIF
+  =zwindon("Preparing   EDS  System")
+
+  zPathFile = GetEDSPathFile(zSystem,ALLT(configlc.dssfolder),zFile) &&====================
+
+  IF !FILE(zPathFile).and. [1] $ zoperation && file doesnt exist  but don't create if not using editor
+    =zwindoff(.2)
+    =pwaitMB([Requested file   ]+UPPE(zPathFile)+[   does not exist ]+zCrCr;
+      +[The file must be created with a registered version of EDS ]+CHR(13);
+      +[using the  EDS  "Manage/Edit"  mode]+zCrCr;
+      +[EDS operation cancelled])
+    RETURN
+  ENDIF
+  IF [S] $ zoperation .and. !FILE(zzStartDir+[\SAMPLE.pdf])
+    ztpdf = zzStartDir+[\starter.pdf]
+    zopdf = zzStartDir+[\SAMPLE.pdf]
+    COPY FILE &ztpdf TO &zopdf
+    =pwaitMB([The CTI supplied Sample EDS file was not found, a simple 1 page Acrobat.Pdf was substituted.]+zCrCr;
+      +[Contact CTI to obtain a working sample EDS file.])
+  ENDIF
+  IF !FILE(zPathFile) .and. ![S] $ zoperation
+    ztpdf = zzStartDir+[\starter.pdf]
+    COPY FILE &ztpdf TO &zPathFile
+  ENDIF
+  =zwindoff(.5)
+  DECLARE INTEGER ShellExecute IN shell32.dll ;
+    INTEGER hndWin, STRING cAction, STRING cFileName, ;
+    STRING cParams, STRING cDir, INTEGER nShowWin
+  DO CASE
+    CASE FILE(ALLT(configlc.dssreader)) .and. [1] $ zoperation
+      =ShellExecute(0,"OPEN",ALLT(configlc.dssreader) ,zPathFile,"",1)
+    CASE FILE(ALLT(configlc.dsseditor)) .and. [2] $ zoperation
+      =ShellExecute(0,"OPEN",ALLT(configlc.dsseditor) ,zPathFile,"",1)
+    CASE FILE(ALLT(configlc.dsseditor)) .and. [S] $ zoperation
+      =ShellExecute(0,"OPEN",ALLT(configlc.dsseditor) ,zzStartDir+[\SAMPLE.pdf],"",1)
+    CASE FILE(ALLT(configlc.dssreader)) .and. [S] $ zoperation
+      =ShellExecute(0,"OPEN",ALLT(configlc.dssreader) ,zzStartDir+[\SAMPLE.pdf],"",1)
+    OTHERWISE
+      =pwaitMB([Appropriate  ADOBE reader or editor not found]+zCrLf+zCrLf+[EDS operation cancelled])
+  ENDCASE
+
+  FUNCTION GetEDSPathFile &&===================================================
+  PARA xsystem,xxdssdir,xfile
+  PRIV xsystem,xxdssdir,xpf,xtdir,xfile
+  STORE [] TO xtdir,xpf
+  DO CASE
+    CASE [INVENTORY]$xsystem
+      xtdir = xxdssdir+[\Inventory\]
+    CASE [AIRCRAFT]$xsystem
+      xtdir = xxdssdir+[\Aircraft\]
+    CASE [CUSTOMERS]$xsystem
+      xtdir = xxdssdir+[\Customers\]
+    CASE [VENDORS]$xsystem
+      xtdir = xxdssdir+[\Vendors\]
+    CASE [COMPASSETS]$xsystem
+      xtdir = xxdssdir+[\CompAssets\]
+    CASE [EMPLOYEES]$xsystem
+      xtdir = xxdssdir+[\Employees\]
+    CASE [EMP_TRAIN]$xsystem
+      xtdir = xxdssdir+[\Emp_Train\]
+    CASE [TESTEQUIP]$xsystem
+      xtdir = xxdssdir+[\TestEquip\]
+    CASE [MANUALS]$xsystem
+      xtdir = xxdssdir+[\Manuals\]
+    CASE [AUXPARTS]$xsystem
+      xtdir = xxdssdir+[\AuxParts\]
+    CASE [EQUIPSPECS]$xsystem
+      xtdir = xxdssdir+[\EquipSpecs\]
+    CASE [WORKORDERS]$xsystem
+      xtdir = xxdssdir+[\WorkOrders\]
+    CASE [RECURRING INVOICES]$xsystem
+      xtdir = xxdssdir+[\Recur_Invoices\]
+    CASE [INVOICES]$xsystem
+      xtdir = xxdssdir+[\Invoices\]
+    CASE [POEXP]$xsystem
+      xtdir = xxdssdir+[\POExp\]
+    CASE [QUOTES]$xsystem
+      xtdir = xxdssdir+[\Quotes\]
+    CASE [LIFTQTS]$xsystem
+      xtdir = xxdssdir+[\LiftQuotes\]
+    CASE [LOANERS]$xsystem
+      xtdir = xxdssdir+[\Loaners\]
+    CASE [CUSTADJS]$xsystem
+      xtdir = xxdssdir+[\CustAdjs\]
+    CASE [CUSTCMS]$xsystem
+      xtdir = xxdssdir+[\CustCMs\]
+    CASE [VENDADJS]$xsystem
+      xtdir = xxdssdir+[\VendAdjs\]
+    CASE [337S]$xsystem
+      xtdir = xxdssdir+[\337s\]
+    CASE [8130S]$xsystem
+      xtdir = xxdssdir+[\8130s\]
+    CASE [LOGBOOKS]$xsystem
+      xtdir = xxdssdir+[\LogBooks\]
+    CASE [WBFIXED]$xsystem
+      xtdir = xxdssdir+[\WBFixed\]
+    CASE [WBROTARY]$xsystem
+      xtdir = xxdssdir+[\WBRotary\]
+    CASE [WARRAPP]$xsystem
+      xtdir = xxdssdir+[\WarrApp\]
+    CASE [WARRCLAIM]$xsystem
+      xtdir = xxdssdir+[\WarrClaim\]
+    CASE [MCFS]$xsystem
+      xtdir = xxdssdir+[\MCFs\]
+    CASE [MISCDOCS]$xsystem
+      xtdir = xxdssdir+[\MiscDocs\]
+    OTHERWISE
+      xtdir = []
+  ENDCASE
+  IF !EMPT(xtdir).and.!DIRECTORY(xtdir)
+    MD &xtdir
+  ENDIF
+  xfile = AlterPuncs(xfile,[])  && do before adding dir & path
+  xpf   = ALLT(xtdir + xfile + [.PDF])
+  xpf   = STRTR(xpf,[/],[\])
+  xpf   = STRTR(xpf,[\\],[\])
+  xpf   = STRTR(xpf,[//],[\])
+  RETURN(xpf)
+
+  PROCEDURE AlterPuncs && ----------------------------------------------------------------
+  PARA zInStr,xAllowStr
+  PRIV zInStr,zOutStr,xstr,ttt,cchar,xAllowStr    && // don't even nag, simply substitue
+  zOutStr = ALLT(zInStr)
+  zLen    = LEN(zOutStr)
+  STORE [] TO cbad,cchar
+  xstr = " :.,;()\/|*%^&$#@!+-=<>~{}[]?"+["']
+  FOR ttt = 1 TO zLen
+    cchar = SUBST(zOutStr,ttt,1)
+    IF cchar $ xstr .and. !cchar $ xAllowStr
+      zOutStr = STRTRAN(zOutStr ,cchar,[_])
+    ENDIF
+  ENDFOR
+  RETURN(zOutStr)
+
+  FUNCTION LBadPunc && --------------
+  PARA m1   && *// inspects for unwanted PATH punctuation and returns null if none
+  PRIV m1,m2,ttt,cchar,cbad,zLen,xstr && *// else returns first unwanted one it finds
+  zLen = LEN(m1)
+  STORE [] TO cbad,cchar
+  FOR ttt = 1 TO zLen
+    cchar = SUBST(m1,ttt,1)
+    xstr = " .,()*%^&$#@!+=<>~{}[]?"+["']
+    IF cchar $ xstr
+      cbad = cchar
+      EXIT
+    ENDIF
+  ENDFOR
+  RETURN(cbad)
+
+  FUNCTION mod_mnemer && --------------
+  * removes punctuation and returns result
+  PARA m1
+  PRIV m1,m2,ttt
+  m2 = ' -.,()/\:;*_%^&$#@!+=<>'
+  FOR ttt = 1 TO 23
+    m1 = STRTRAN(m1,SUBS(m2,ttt,1),'')
+  ENDFOR
+  RETURN(ALLT(UPPE(m1)))
+
+  FUNCTION str_tran1 && -----------
+  * removes certain punctuation and returns result
+  PARA m1
+  PRIV m1,m2,ttt
+  *'             1         2         3         4 '
+  *'    1234567890123456789012345678901234567890'
+  m2 = '():;*%^&$#@!+=<> --  ..  //  \\ ..--//\\'
+  FOR ttt = 1 TO 16
+    m1 = STRTRAN(m1,SUBS(m2,ttt,1),'')
+  ENDFOR
+  FOR ttt = 17 TO 32 STEP 2
+    m1 = STRTRAN(m1,SUBS(m2,ttt,2),ALLT(SUBS(m2,ttt,2)))
+  ENDFOR
+  FOR ttt = 33 TO 40 STEP 2
+    m1 = STRTRAN(m1,SUBS(m2,ttt,2),ALLT(SUBS(m2,ttt,1)))
+  ENDFOR
+  RETURN(ALLT(UPPE(m1)))
+
+  PROCEDURE CalcAcInspItem && --------------------------------------------------------------
+  PRIV xAlias
+  xAlias=ALIAS()
+  *// must be on correct A/C.  Updates a single inspec item
+  *// acinspec_m must be open and available
+  SELE acinspec
+  IF SEEK(acinspec.item,[acinsp_m],[item])
+    **REPLA acinspec.months_int WITH acinsp_m.months_int
+    **REPLA acinspec.time_int   WITH acinsp_m.time_int
+    **REPLA acinspec.lmonth_day WITH acinsp_m.lmonth_day
+    REPLA acinspec.dayofmonth WITH acinsp_m.dayofmonth
+  ENDIF
+  SELE acinspec
+  IF acinspec.lastdate # {} .and. acinspec.months_int#0
+    IF acinspec.lmonth_day # 2 && months
+      zNewdate = GOMO(acinspec.lastdate,ABS(acinspec.months_int))
+      IF acinspec.dayofmonth=[LAST]
+        zNewdate = LastDOM(zNewdate)
+      ENDIF
+    ELSE              && days
+      zNewdate = acinspec.lastdate+ABS(acinspec.months_int)
+    ENDIF
+    IF acinspec.duedate # zNewdate
+      REPLA acinspec.duedate WITH zNewdate
+    ENDIF
+  ELSE
+    IF acinspec.duedate # {}
+      REPLA acinspec.duedate WITH {}
+    ENDIF
+  ENDIF
+  zRemDays = IIF(acinspec.duedate # {}, acinspec.duedate - DATE(),0)
+  IF acinspec.remdays # zRemDays
+    REPLA acinspec.remdays WITH zRemDays
+  ENDIF
+  IF lasthours # 0
+    zNewHours = acinspec.lasthours + acinspec.time_int
+    IF acinspec.duehours # zNewHours
+      REPLA acinspec.duehours WITH zNewHours
+    ENDIF
+  ENDIF
+  zCalcrHrs = IIF(acinspec.comp_hrs # 0 , acinspec.comp_hrs ,avaircra.aftime)
+  zRemHrs = IIF(acinspec.duehours > 0, acinspec.duehours - zCalcrHrs ,0)
+  IF acinspec.remhours # zRemHrs
+    REPLA acinspec.remhours WITH zRemHrs
+  ENDIF
+  =TABLEUPDATE(.T.,.T.,"acinspec")
+  IF !EMPT(xAlias)
+    SELE (xAlias)
+  ENDIF
+
+  PROCEDURE RecalcSerQoh && ---------------------------------------------------------------
+  PARA zPnumCat
+  PRIV zPnumCat,zPrec,zSrec,zAlias,zLser,zCountedQoh && avpartss is expected to be open already
+  **mhvdkgwieuhfd=ywifebuh3weou23443
+  zAlias = ALIAS()
+  IF !USED("avpartss")   &&.or.!USED("serparts")
+    RETURN
+  ENDIF
+  IF !SEEK(UPPE(zPnumCat),[avpartss],[appnum])
+    RETURN
+  ENDIF
+  SELE 0
+  USE serparts AGAIN ALIAS xxserp
+  SELE xxserp
+  SET ORDER TO p_s_num IN xxserp
+  STORE .F. TO zLser
+  zCountedQoh = avpartss.pqoh
+  IF SEEK(UPPE(zPnumCat),[xxserp],[p_s_num])
+    STORE 0 TO zCountedQoh
+    SCAN WHILE UPPE(xxserp.pnum+xxserp.pcat) = UPPE(zPnumCat)
+      zLser = .T.
+      IF xxserp.outofstk={}
+        zCountedQoh = zCountedQoh + 1
+      ENDIF
+    ENDSCAN
+  ENDIF
+  USE IN xxserp
+  SELE avpartss
+  *****WAIT [1  SERIALS  UPDATE   ]+zPnumCat+[  Invt ]+STR(avpartss.pqoh,8,2)+[   cnt ]+STR(zCountedQoh ,8,2) WIND TIME 6
+  IF avpartss.ppartnum+avpartss.cat = zPnumCat
+    IF avpartss.serialized # zLser
+      REPL serialized WITH zLser   &&.T.
+      =TABLEUPDATE(.T.)
+    ENDIF
+    IF avpartss.pqoh # zCountedQoh .and. zLser
+      REPL avpartss.pqoh WITH zCountedQoh
+      =TABLEUPDATE(.T.)
+    ENDIF
+  ENDIF
+  *!*	SELE serparts
+  *!*	IF !EMPT(zSrec)
+  *!*	  GO zSrec
+  *!*	ENDIF
+  *!*	IF !EMPT(zSOrd)
+  *!*	  SET ORDER TO &zSOrd
+  *!*	ENDIF
+  *!*	IF !EMPT(zSflt)
+  *!*	  SET FILT TO &zSflt
+  *!*	ENDIF
+  IF !EMPT(zAlias)
+    SELE &zAlias
+  ENDIF
+
+  PROCEDURE RptPageCnt &&------------------------------------------------------------------
+  PARA zFrx,zRecnum
+  IF PARA() < 2
+    zRecnum = 0
+  ENDIF
+  PRIV zFrx,zpgcnt,zRecnum
+  STORE 0 TO zpgcnt
+  IF TYPE('zfrx') = "C" .and. LEN(ALLT(zFrx)) > 1
+    *WAIT NOWAIT WIND [Calculating  Total  Pages]
+    IF TYPE('p__pageno') # "N"
+      PUBLIC p__pageno
+    ENDIF
+    p__pageno = 0
+    IF zRecnum > 0
+      REPORT FORM &zFrx NOCO RECO zRecnum
+    ELSE
+      REPORT FORM &zFrx NOCO
+    ENDIF
+    p__pageno = MAX(0,_pageno)
+    *WAIT ALLT(STR(p__pageno)) WIND TIME(.1)
+  ENDIF
+
+  PROCEDURE MakeRptPageStr &&---------------------------------------------------------------
+  PARA zCurrPage
+  PRIV zCurrPage
+  IF TYPE('p__pageno') # "N"
+    PUBLIC p__pageno
+    p__pageno = 0
+  ENDIF
+  RETURN( [Page  ]+ALLT(STR(zCurrPage))+[  of  ]+ALLT(STR(p__pageno)) )
+
+  FUNCTION TimeUdf1 &&--------------------------
+  * GROSS time calc spans across multiple days
+  * called by ta_maint and ATC forms
+  PARA t1,t2,d1,d2,jRound  && jRound  = 0 1 or 5
+  PRIV t1,t2,d1,d2,ti,to,mdays
+  IF INLI(t1,'  :  :  ','        ').or.INLI(t2,'  :  :  ','        ').or.d1={}.or.d2={}
+    RETURN(0)
+  ENDIF
+  IF t1='00:00:00'.and.t2='00:00:00'
+    RETURN(0)
+  ENDIF
+  IF d2<d1
+    RETURN(-0.001)
+  ENDIF
+  mdays = d2-d1
+  ti=VAL(SUBS(t1,1,2))+(VAL(SUBS(t1,4,2))/60)+(VAL(SUBS(t1,7,2))/6000)
+  to=VAL(SUBS(t2,1,2))+(VAL(SUBS(t2,4,2))/60)+(VAL(SUBS(t2,7,2))/6000)
+  DO CASE
+    CASE mdays < 1   && all on same day
+      t_o = to - ti
+    CASE mdays>=1 .and. to = ti   && spanned day and equal IN  OUT
+      t_o = 24*mdays
+    CASE mdays=1 .and. to < ti   && spanned 1 day  out is less than in
+      t_o = (24-ti) + to
+    CASE mdays=1 .and. to > ti   && spanned 1 day out is greater than in
+      t_o = (24-ti) + to
+    CASE mdays>1 .and. to > ti   && spanned > 1 day out is greater than in
+      t_o = (24*(mdays)) + to -ti
+    CASE mdays>1 .and. to < ti   && spanned > 1 day out is greater than in
+      t_o = (24*(mdays-1)) + (24-ti) + to
+    OTHERWISE
+      t_o = 0
+  ENDCASE
+
+  t_o = Atc_rounder(t_o,jRound)  && =================
+
+  RETURN(MAX(0,t_o)) && gross time
+
+  FUNCTION Atc_rounder &&--------------------------------------
+  LPARA xHrs,xRound
+  DO CASE
+    CASE xRound = 1 .and. xHrs > 0 && tenths
+      xHrs = ROUN(xHrs,1)
+    CASE xRound = 5 .and. xHrs > 0 && 1.7364
+      xHrs = ROUN(xHrs,3)  && 1.736
+      xInt = INT(xHrs)     && 1.000
+      xRem = xHrs - xInt   && 0.736
+      nRem  = VAL(RIGHT(STR(xRem, 5, 3), 2)) && 36
+      n10th = VAL(LEFT (STR(xRem, 5, 3), 3)) && 0.7
+      DO CASE
+        CASE BETW(nRem, 00 , 25 )
+          xRem = n10th + .00
+        CASE BETW(nRem, 26 , 74 )
+          xRem = n10th + .05
+        CASE BETW(nRem, 75 , 99 )
+          xRem = n10th + .1
+      ENDCASE
+      xHrs = xInt + xRem
+    OTHERWISE && hundreths
+      xHrs = ROUN(xHrs,2)
+  ENDCASE
+  RETURN(xHrs)
+
+  FUNCTION TimeUdf2 &&====================================
+  *** gets one entries worth of basic REG/CALL/OT
+  *** returns it where more processing is done
+  PARA tii,too,zclass,zGT,zlunch
+  PRIV tii,too,gt,to,iti,mint,mrem,mor,moo,mtl,zclass,zGT,zlunch
+  zGT = ROUND(zGT,2)
+  DO CASE
+    CASE zclass = 'H'
+      RETURN(STR(8,6,2)+STR(0,6,2)+STR(0,6,2))
+    CASE zclass = 'N'
+      RETURN(STR(0,6,2)+STR(0,6,2)+STR(0,6,2))
+    CASE zclass='V'
+      RETURN(STR(8,6,2)+STR(0,6,2)+STR(0,6,2))
+    CASE zclass='V'
+      RETURN(STR(10,6,2)+STR(0,6,2)+STR(0,6,2))
+    CASE tii=too
+      RETURN(STR(0,6,2)+STR(0,6,2)+STR(0,6,2))
+  ENDCASE
+  hri=VAL(LEFT(tii,2))
+  mni=VAL(RIGH(tii,2))
+  hro=VAL(LEFT(too,2))
+  mno=VAL(RIGH(too,2))
+  ShiftOneHr=.F.
+  zni     = mni
+  zGTCalc = zGT - zlunch
+  ************
+  *IF LEFT(employ_m.e_cat,2)='SS'.and.BETW(zGTCalc,8.01,8.99);
+  *  .and.INLI(class,'R')
+  *  zSalSup = .T.
+  *ELSE
+  *  zSalSup = .F.
+  *ENDIF
+  **zSalSup = .F.  &&LEFT(employ_m.e_cat,2)='SS'
+  ************
+  DO CASE
+    CASE 1=2  && zSalSup  && stopped
+      DO CASE
+        CASE BETW(mni,01,29) .and. zGTCalc < 9.02
+          mni=30       && push down to half past hour
+          WAIT [SS push down ] WIND TIME 2
+        CASE BETW(mni,30,59) .and. zGTCalc < 9.02
+          mni=0        && push up to on the hour
+          WAIT [SS push up ] WIND TIME 2
+          ShiftOneHr = .T.
+      ENDCASE
+    CASE BETW(mni,00,07)
+      mni=0
+    CASE BETW(mni,08,22)
+      mni=15
+    CASE BETW(mni,23,37)
+      mni=30
+    CASE BETW(mni,38,52)
+      mni=45
+    CASE BETW(mni,53,99)
+      mni=0
+      ShiftOneHr = .T.
+  ENDCASE
+  DO CASE
+    CASE ShiftOneHr .and. hri=24
+      hri=0
+    CASE ShiftOneHr
+      hri=hri+1
+  ENDCASE
+  tii = STRTR(PADL(STR(hri,2),2,'0')+[:]+PADL(STR(mni,2),2,'0'),' ','0')
+  ti  = VAL(SUBS(tii,1,2))+(VAL(SUBS(tii,4,2))/60)
+
+  ShiftOneHr=.F.
+  DO CASE  &&--- OUT
+    CASE 1=2  && zSalSup.and.BETW(mno,00,30)
+      mno=0
+    CASE 1=2  && zSalSup.and.BETW(mno,31,59).and.zLunch > 1
+      mno=30
+    CASE BETW(mno,00,07)
+      mno=0
+    CASE BETW(mno,08,22)
+      mno=15
+    CASE BETW(mno,23,37)
+      mno=30
+    CASE BETW(mno,38,52)
+      mno=45
+    CASE BETW(mno,53,99)
+      mno=0
+      ShiftOneHr = .T.
+  ENDCASE
+  *WAIT [IN  ]+STR(mni)+[  OUT  ]+STR(mno)+[ Shift ]+IIF(Shiftonehr,[Y],[N]) WIND
+  DO CASE
+    CASE ShiftOneHr .and. hro=24
+      hro=0
+    CASE ShiftOneHr
+      hro=hro+1
+  ENDCASE
+  too  = STRTR(PADL(STR(hro,2),2,'0')+[:]+PADL(STR(mno,2),2,'0'),' ','0')
+  to   = VAL(SUBS(too,1,2))+(VAL(SUBS(too,4,2))/60)
+
+  gt   = IIF(to<ti,(24-ti)+to,to-ti) && gross time
+  mint = INT(gt) && integer GROSS
+  mrem = gt-mint && remainder GROSS
+  mtl  = mint+mrem
+  DO CASE
+    CASE 1=2 &&mtl > employ_m.ot_after .and. employ_m.over_08_x # 'Y'
+      mor = mtl
+      moo = 0
+      moc = 0
+    OTHERWISE
+      mor = mtl    &&MIN(employ_m.ot_after,mtl)
+      moo = 0
+      moc = 0
+  ENDCASE
+  *WAIT STR(mor,6,2)+STR(moc,6,2)+STR(moo,6,2) WIND
+  RETURN(STR(mor,6,2)+STR(moc,6,2)+STR(moo,6,2))
+
+  FUNCTION TimeUdf78 &&====================================
+  *** returns one entries worth of 7/8 time
+  *** only used for special exceptions
+  PARA tii,too
+  PRIV tii,too,gt,to,iti,mint,mrem,mor,moo,mot,ShiftOneHr
+  IF tii=too.or.INLI(tii,'  :  ','     ') .or. INLI(too,'  :  ','     ')
+    RETURN(0)
+  ENDIF
+  hri=VAL(LEFT(tii,2))
+  mni=VAL(RIGH(tii,2))
+  hro=VAL(LEFT(too,2))
+  mno=VAL(RIGH(too,2))
+  ShiftOneHr=.F.
+  DO CASE
+    CASE BETW(mni,00,07)
+      mni=0
+    CASE BETW(mni,08,22)
+      mni=15
+    CASE BETW(mni,23,37)
+      mni=30
+    CASE BETW(mni,38,52)
+      mni=45
+    CASE BETW(mni,53,99)
+      mni=0
+      ShiftOneHr = .T.
+  ENDCASE
+  DO CASE
+    CASE ShiftOneHr .and. hri=24
+      hri=0
+    CASE ShiftOneHr
+      hri=hri+1
+  ENDCASE
+  tii = STRTR(PADL(STR(hri,2),2,'0')+[:]+PADL(STR(mni,2),2,'0'),' ','0')
+  ti  = VAL(SUBS(tii,1,2))+(VAL(SUBS(tii,4,2))/60)
+  ShiftOneHr=.F.
+  DO CASE  && out
+    CASE BETW(mno,00,07)
+      mno=0
+    CASE BETW(mno,08,22)
+      mno=15
+    CASE BETW(mno,23,37)
+      mno=30
+    CASE BETW(mno,38,52)
+      mno=45
+    CASE BETW(mno,53,99)
+      mno=0
+      ShiftOneHr = .T.
+  ENDCASE
+  DO CASE
+    CASE ShiftOneHr .and. hro=24
+      hro=0
+    CASE ShiftOneHr
+      hro=hro+1
+  ENDCASE
+  too  = STRTR(PADL(STR(hro,2),2,'0')+[:]+PADL(STR(mno,2),2,'0'),' ','0')
+  to   = VAL(SUBS(too,1,2))+(VAL(SUBS(too,4,2))/60)
+  gt   = IIF(to<ti,(24-ti)+to,to-ti) && gross time
+  RETURN(gt)
+
+  PROCEDURE CtiWebSite &&------------------------------------------------
+  LPARAM zsite,zWinStyle
+  DECLARE INTEGER ShellExecute IN shell32.dll ;
+    INTEGER hndWin, STRING cAction, STRING cFileName, ;
+    STRING cParams, STRING cDir, INTEGER nShowWin
+  =ShellExecute(0,"open",zsite,"","",zWinStyle)
+  *DO CtiWebSite WITH "mailto:sales@tangoware.com",1
+
+  PROCEDURE HtmlBasic  &&--------------------------------------------------------
+  *WAIT [HTML] WIND TIME .4
+  DECLARE INTEGER ShellExecute IN shell32.dll ;
+    INTEGER hndWin, ;
+    STRING cAction, ;
+    STRING cFileName, ;
+    STRING cParams, ;
+    STRING cDir, ;
+    INTEGER nShowWin
+  *cFileName = "-mapid 500 ms-its:c:\SPN\2kguide.chm"
+  IF FILE(zzStartDir+"\2kguide.chm")
+    =ShellExecute(0,"OPEN","HH.EXE",zzStartDir+"\2kguide.chm","",1)
+  ELSE
+    =pwaitMB("File:  2KGUIDE.CHM  not found  -  contact CTI")
+    *IF FILE(zzStartDir+"\2kguide.chm")
+    *  =ShellExecute(0,"OPEN","HH.EXE",zzStartDir+"\2kguide.chm","",1)
+    *ENDIF
+  ENDIF
+
+  PROCEDURE OpenUserGuidePDF &&--------------------------------------------------------
+  *WAIT [HTML] WIND TIME .4
+  DECLARE INTEGER ShellExecute IN shell32.dll ;
+    INTEGER hndWin, ;
+    STRING cAction, ;
+    STRING cFileName, ;
+    STRING cParams, ;
+    STRING cDir, ;
+    INTEGER nShowWin
+  IF FILE(zzStartDir+"\SPNGUIDE.PDF")
+    IF FILE("C:\ThisFileOnlyOn.CTI")
+      =pwaitMB("CTI ONLY!!!!  found pdf in startup dir  ("+zzStartDir+")")
+    ENDIF
+    =ShellExecute(0,"OPEN",zzStartDir+"\SPNGUIDE.PDF","","",1)
+  ELSE
+    jFound=.F.
+    IF TYPE("sgcpjdbf")#[U]
+      zDataDir = ALLT(sgcpjdbf)  && system var data directory  C:\SPN\DATA
+      zRootDir = STRTR(zDataDir,[\DATA],[]) && strip data folder to get route
+      IF FILE(zDataDir+"\SPNGUIDE.PDF")
+        jFound=.T.
+        IF FILE("C:\ThisFileOnlyOn.CTI")
+          =pwaitMB("CTI ONLY!!!!  found pdf in server data dir  ("+zDataDir+")")
+        ENDIF
+        =ShellExecute(0,"OPEN",zDataDir+"\SPNGUIDE.PDF","","",1)
+      ELSE
+        IF FILE(zRootDir+"\SPNGUIDE.PDF")
+          jFound=.T.
+          IF FILE("C:\ThisFileOnlyOn.CTI")
+            =pwaitMB("CTI ONLY!!!!  found pdf in server ROOT dir  ("+zRootDir+")")
+          ENDIF
+          =ShellExecute(0,"OPEN",zRootDir+"\SPNGUIDE.PDF","","",1)
+        ENDIF
+      ENDIF
+    ENDIF
+    IF !jFound
+      =pwaitMB("File:  SPNGUIDE.PDF  not found  -  contact CTI")
+    ENDIF
+  ENDIF
+  PROCEDURE HtmlByTopic  &&--------------------------------------------------------
+  LPARAM zTopic
+  *WAIT [HTML] WIND TIME .4
+  DECLARE INTEGER ShellExecute IN shell32.dll ;
+    INTEGER hndWin, ;
+    STRING cAction, ;
+    STRING cFileName, ;
+    STRING cParams, ;
+    STRING cDir, ;
+    INTEGER nShowWin
+  DO CASE
+      *!*	  CASE zTopic>0 .and. FILE("C:\ThisFileOnlyOn.Cti") .and. FILE("C:\SPN\2kguide.chm")
+      *!*	    cFileName = "-mapid "+ALLT(STR(zTopic))+" ms-its:c:\SPN\2kguide.chm"
+    CASE zTopic>0 .and. FILE(zzStartDir+"\2kguide.chm")
+      cFileName = "-mapid "+ALLT(STR(zTopic))+" ms-its:"+zzStartDir+"\2kguide.chm"
+    CASE zTopic>0 .and. FILE(zzStartDir+"\2kguide.chm")
+      cFileName = "-mapid "+ALLT(STR(zTopic))+" ms-its:"+zzStartDir+"\2kguide.chm"
+      *!*	  CASE zTopic>0 .and. FILE("C:\SPN2KWS\2kguide.chm")
+      *!*	    cFileName = "-mapid "+ALLT(STR(zTopic))+" ms-its:c:\SPN2KWS\2kguide.chm"
+      *!*	  CASE zTopic>0 .and. FILE("C:\SPN2000\2kguide.chm")
+      *!*	    cFileName = "-mapid "+ALLT(STR(zTopic))+" ms-its:c:\SPN2000\2kguide.chm"
+    OTHERWISE
+      cFileName = []
+  ENDCASE
+  IF !EMPT(cFileName)
+    =ShellExecute(0,"OPEN","HH.EXE",cFileName,"",1)
+  ELSE
+    =pwaitMB("File:  2KGUIDE.CHM  not found  -  contact CTI")
+  ENDIF
+
+  FUNCTION CleanKey &&-----------------------------------------------
+  *// Usage =CleanKey(key)  for WO or QUOTE keys
+  LPARAM zKeyIn,zDeli
+  PRIV zKeyOut,zDeli
+  IF TYPE("zDeli")=[L]
+    zDeli = [-]
+  ENDIF
+  zKeyOut = ALLT(LEFT(zKeyIn,8))+zDeli+ALLT(RIGHT(zKeyIn,3))
+  zKeyOut = IIF(ALLT(zKeyOut)==zDeli,[],zKeyOut)
+  RETURN(zKeyOut)
+
+  PROCEDURE CopyUtilityFiles &&================================================
+  PRIV zldone
+  RETURN
+  zldone = .F.
+  =zwindon([Checking for Utility Files])
+  **=CopyUtilityFiles() && davmprcs
+  IF TYPE("zzStartDir")=[U]
+    zzStartDir = [C:\SPN]
+  ENDIF
+  IF FILE(zzStartDir+[\PKZ25.EXE]).and.!FILE(zzStartDir+[\DATA\PKZ25.EXE])
+    COPY FILE zzStartDir+[\PKZ25.EXE] TO zzStartDir+[\DATA\PKZ25.EXE]
+    ** leave it   &&DELE FILE zzstartdir+[\PKZ25.EXE]
+    zldone = .T.
+  ENDIF
+  IF FILE(zzStartDir+[\PKZIP.EXE]).and.!FILE(zzStartDir+[\DATA\PKZIP.EXE])
+    COPY FILE zzStartDir+[\PKZIP.EXE] TO zzStartDir+[\DATA\PKZIP.EXE]
+    ** leave it   &&DELE FILE zzstartdir+[\PKZIP.EXE]
+    zldone = .T.
+  ENDIF
+  IF FILE(zzStartDir+[\FOXPRO.ESO]).and.!FILE(zzStartDir+[\DATA\FOXPRO.ESO])
+    COPY FILE zzStartDir+[\FOXPRO.ESO] TO zzStartDir+[\DATA\FOXPRO.ESO]
+    DELE FILE zzStartDir+[\FOXPRO.ESO]
+    zldone = .T.
+  ENDIF
+  IF FILE(zzStartDir+[\FOXPRO.ESL]).and.!FILE(zzStartDir+[\DATA\FOXPRO.ESL])
+    COPY FILE zzStartDir+[\FOXPRO.ESL] TO zzStartDir+[\DATA\FOXPRO.ESL]
+    DELE FILE zzStartDir+[\FOXPRO.ESL]
+    zldone = .T.
+  ENDIF
+  IF FILE(zzStartDir+[\FOXFIX.EXE]).and.!FILE(zzStartDir+[\DATA\FOXFIX.EXE])
+    COPY FILE zzStartDir+[\FOXFIX.EXE] TO zzStartDir+[\DATA\FOXFIX.EXE]
+    DELE FILE zzStartDir+[\FOXFIX.EXE]
+    zldone = .T.
+  ENDIF
+  IF FILE(zzStartDir+[\FOXR.EXE]).and.!FILE(zzStartDir+[\DATA\FOXR.EXE])
+    COPY FILE zzStartDir+[\FOXR.EXE] TO zzStartDir+[\DATA\FOXR.EXE]
+    DELE FILE zzStartDir+[\FOXR.EXE]
+    zldone = .T.
+  ENDIF
+  IF FILE(zzStartDir+[\FOXMAINT.FXP]).and.!FILE(zzStartDir+[\DATA\FOXMAINT.FXP])
+    COPY FILE zzStartDir+[\FOXMAINT.FXP] TO zzStartDir+[\DATA\FOXMAINT.FXP]
+    DELE FILE zzStartDir+[\FOXMAINT.FXP]
+    zldone = .T.
+  ENDIF
+  =zwindoff(IIF(zldone,1,.01))
+
+  PROCEDURE SetPCopies &&============
+  *// for multi copy printing
+  LPARAM zLSPTN
+  PRIV zLSPTN, zOK
+  IF FILE("C:\SETCOPY.NO")
+    RETURN
+  ENDIF
+  IF 11=11  &&don't SniffPrinters
+    RETURN
+  ENDIF
+  zAlias=ALIAS()
+  SELE 0
+  USE configlc AGAIN ALIAS zconflc
+  zdefprn = ALLT(zconflc.defprinter)
+  USE IN zconflc
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  ***_zPCopies = IIF(BETW(configlc.nprncopies,2,9),configlc.nprncopies,1)
+  IF zLSPTN .and. !EMPT(zdefprn ) .and. !FILE("C:\SETCOPY.NO")
+    jjj=APRINTERS(zzPrnList) &&// build an array of printers
+    zOK = .F.
+    IF jjj > 0
+      zPrnElem = ALEN(zzPrnList) / 2
+      FOR xxx = 1 TO zPrnElem            && VFP PRN,2 returns uppercase  -  need to get proper case here
+        zAprn = ALLT(zzPrnList(xxx,1))   && by scanning printers list for a match and reassign
+        IF ALLT(UPPE(zdefprn))==ALLT(UPPE(zAprn))
+          zOK = .T.
+          EXIT
+        ENDIF
+      ENDFOR
+    ENDIF
+    RELEASE xxx,xRetPrn,zAprn,zPrnElem
+    IF zOK  && only if default is valid
+      *WAIT [SET  PRINTER  TO  ]+ALLT(zdefprn ) WIND TIME 1
+      SET PRINTER TO NAME ALLT(zdefprn )
+    ENDIF
+  ENDIF
+  =CtiFpReset()
+
+  FUNCTION GrossTime1 &&--------------------------
+  * GROSS time calc spans across multiple days
+  PARA t1,t2,d1,d2
+  PRIV t1,t2,d1,d2,ti,to,mdays
+  IF INLI(t1,'  :  ','     ').or.INLI(t2,'  :  ','     ').or.d1={}.or.d2={}
+    RETURN(0)
+  ENDIF
+  IF t1='00:00'.and.t2='00:00'
+    RETURN(0)
+  ENDIF
+  mdays = d2-d1
+  IF mdays<0
+    RETURN(0)
+  ENDIF
+  *!*	ti = Time_78(t1)
+  *!*	IF LEFT(t1,2)=[24]
+  *!*	  d1 = d1 + 1
+  *!*	  ti = [00:]+RIGHT(ti,2)
+  *!*	ENDIF
+  *!*	t2 = Time_78(t2)
+  *!*	IF LEFT(t2,2)=[24]
+  *!*	  d2 = d2 + 1
+  *!*	  t2 = [00:]+RIGHT(t2,2)
+  *!*	ENDIF
+
+  ti=VAL(SUBS(t1,1,2))+(VAL(SUBS(t1,4,2))/60)  &&+(VAL(SUBS(time_i,7,2))/6000)
+  to=VAL(SUBS(t2,1,2))+(VAL(SUBS(t2,4,2))/60)  &&+(VAL(SUBS(time_o,7,2))/6000)
+  DO CASE
+    CASE mdays < 1   && all on same day
+      t_o = to - ti
+    CASE mdays>=1 .and. to = ti   && spanned day and equal IN  OUT
+      t_o = 24*mdays
+    CASE mdays=1 .and. to < ti   && spanned 1 day  out is less than in
+      t_o = (24-ti) + to
+    CASE mdays=1 .and. to > ti   && spanned 1 day out is greater than in
+      t_o = (24-ti) + to
+    CASE mdays>1 .and. to > ti   && spanned > 1 day out is greater than in
+      t_o = (24*(mdays)) + to -ti
+    CASE mdays>1 .and. to < ti   && spanned > 1 day out is greater than in
+      t_o = (24*(mdays-1)) + (24-ti) + to
+    OTHERWISE
+      t_o = 0
+  ENDCASE
+  *t_o = IIF(CEIL(t_o),t_o) && next highest because personal time
+  RETURN(MAX(0,t_o)) && gross time
+
+  FUNCTION Time_78 &&====================================
+  *// returns one entries worth of 7/8 time
+  PARA ztime
+  PRIV tii,too,gt,to,iti,mint,mrem,mor,moo,mot,ShiftOneHr,ztime
+  IF INLI(ztime,'  :  ','     ')
+    RETURN(time)
+  ENDIF
+  hri=VAL(LEFT(ztime,2))
+  mni=VAL(RIGH(ztime,2))
+  ShiftOneHr=.F.
+  DO CASE
+    CASE BETW(mni,00,07)
+      mni="00"
+    CASE BETW(mni,08,22)
+      mni="15"
+    CASE BETW(mni,23,37)
+      mni="30"
+    CASE BETW(mni,38,52)
+      mni="45"
+    CASE BETW(mni,53,99)
+      mni="00"
+      ShiftOneHr = .T.
+  ENDCASE
+  DO CASE
+    CASE ShiftOneHr .and. hri=24
+      hri=0
+    CASE ShiftOneHr
+      hri=hri+1
+  ENDCASE
+  RETURN(STRTR(STR(hri,2),[ ],[0])+[:]+mni)
+
+
+  PROCEDURE Calc_Pe &&&---------------------------------------------------
+  PARA din,ndpe
+  PRIV din,ndpe
+  DO WHILE .T.     && sets PeDat to current date
+    IF DOW(din)#ndpe
+      din=din+1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  RETURN(din)
+
+  FUNCTION zGetQonOrder &&-------------------------------------------------------------
+  LPARAM zzpnum,zzcat,zpenum
+  *// called ONLY from P&E _zpartspopup browse
+  zAlias = ALIAS()
+  SELE avpoline2
+  SET ORDER TO part_num IN avpoline2
+  SEEK UPPE(zzpnum+zzcat)
+  zoocnt = 0
+  SCAN WHILE UPPE(avpoline2.part_num+avpoline2.cat) = UPPE(zzpnum+zzcat)
+    IF 1=1  &&po_link # zpenum
+      zoocnt = zoocnt + (MAX(0,avpoline2.qty_ord-(avpoline2.into_invt+avpoline2.into_task)))
+    ENDIF
+  ENDSCAN
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(zoocnt)
+
+  FUNCTION CtiFpReset &&--------------------
+  IF TYPE("_OkFpReset")#[U].and._OkFpReset &&// call dll FloatingPoint Processor reset
+    **DECLARE _fpreset IN MSVCRT20.DLL
+    **?? CHR(7)
+    =_fpreset()
+  ENDIF
+
+  PROCEDURE CreateBCLabelDBF &&================================
+  SET SAFETY OFF
+  zDbfFile=GenTempFile([bclbls1]) && parent
+  CREATE DBF (zDbfFile) (pnum C(20),descrip C(35),serial C(20),sku N(8),usertrknum C(15);
+    ,cat C(3),vmnem C(6),ponum C(13),loc C(20), model C(20), wokey C(11), other C(40),qtyord n(11,2);
+    ,um C(20), expire C(20) )
+  SET SAFETY ON
+
+  FUNCTION CheckSetThermPrinter &&-----------------------------------
+  LPARAM xDriver
+  IF FILE("C:\ThisFileOnlyOn.CTI")
+    **=pwaitMB([CTI Thermal Driver is *]+ALLT(xDriver)+[*])
+  ENDIF
+  IF 11=11  &&don't SniffPrinters
+    RETURN
+  ENDIF
+  RELEASE _zResetDefPrinter,_zOrigPrinter
+  PUBLIC _zResetDefPrinter,_zOrigPrinter
+  PRIV zLPBad,zDPBad,zStatus,zalais
+  STORE .F. TO _zResetDefPrinter
+  STORE .T. TO zLPBad
+  zAlias=ALIAS()
+  zStatus=[*]
+  SELE configlc
+  _zOrigPrinter = ALLT(configlc.defprinter)
+  *// test to make a valid print driver is installed here
+  jjj=APRINTERS(zzPrnList) &&// build an array of printers
+  =CtiFpReset()
+  IF jjj > 0
+    zPrnElem = ALEN(zzPrnList) / 2
+    FOR xxx = 1 TO zPrnElem            && VFP PRN,2 returns uppercase  -  need to get proper case here
+      zAprn = ALLT(zzPrnList(xxx,1))   && by scanning printers list for a match and reassign
+      *WAIT zAprn+[  ]+STR(xxx) WIND
+      IF ALLT(UPPE(xDriver))==ALLT(UPPE(zAprn))
+        zLPBad = .F.
+      ENDIF
+    ENDFOR
+    =CtiFpReset() &&---FloatPoint Prob
+  ENDIF
+  IF zLPBad .or. jjj <= 0
+    =pwaitMB([There are ERRORS or ommissions in the Default Printer Settings    (CTI ];
+      +n_s(jjj)+[)   (]+xDriver+[) ]+zCrLf+zCrLf;
+      +[Please configure the STANDARD and THERMAL LABEL printers in    ADMIN > LOCAL CONFIG > PRINTERS ])
+    zStatus = [BADPRINTERS]
+  ELSE
+    SET PRINTER TO NAME (xDriver)
+    _zResetDefPrinter = .T.
+    zStatus=[OK]
+  ENDIF
+  RELE zzPrnList
+  =CtiFpReset() &&--- FloatPointReset
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(zStatus)
+
+  PROCEDURE SetCompDatTherm &&-----------------------------------------
+  *// loads 1st four fields of label
+  PRIV t1,t2,t3,t4,jAlias
+  jAlias = ALIAS()
+  STORE [] TO t1,t2,t3,t4
+  zcszc = MakeCSZ(configav.fcity,configav.fstate,configav.fzip,configav.fcountry)
+  zcsz  = MakeCSZ(configav.fcity,configav.fstate,configav.fzip)
+  zc    = []
+  IF LEN(ALLT(zcszc)) > 45 && wont fit on one line
+    zt = zcsz
+    zc = ALLT(configav.fcountry)
+  ELSE
+    zt = zcszc
+    zc = []
+  ENDIF
+  DO CASE
+    CASE EMPT(configav.faddress).and.EMPT(configav.faddress2)
+      t2 = zt
+      t3 = zc
+    CASE !EMPT(configav.faddress).and.EMPT(configav.faddress2)
+      t2 = configav.faddress
+      t3 = zt
+      t4 = zc
+    CASE !EMPT(configav.faddress).and.!EMPT(configav.faddress2)
+      t2 = configav.faddress
+      t3 = configav.faddress2
+      t4 = zcszc  && try to force all
+  ENDCASE
+  t1=configav.fcompname
+  SELE tmplabel
+  REPLACE line1 WITH t1,line2 WITH t2,line3 WITH t3,line4 WITH t4
+  IF !EMPT(jAlias)
+    SELE (jAlias)
+  ENDIF
+
+  FUNCTION CheckSetPrinter &&-----------------------------------
+  RELEASE _zResetDefPrinter,_zOrigPrinter
+  PUBLIC _zResetDefPrinter,_zOrigPrinter
+  PRIV zLPBad,zDPBad,zStatus,zalais
+  STORE .F. TO zLPBad,zDPBad,_zResetDefPrinter
+  IF 11=11  &&don't SniffPrinters
+    RETURN
+  ENDIF
+  zAlias=ALIAS()
+  zStatus=[*]
+  SELE configlc
+  _zOrigPrinter = ALLT(configlc.defprinter)
+  jjj=APRINTERS(zzPrnList) &&// build an array of printers
+  IF [NO PRINTER]$UPPE(configlc.defprinter) .or. EMPT(configlc.defprinter) ;
+      .or. 0 = ASCAN(zzPrnList,ALLT(configlc.defprinter))  && valid if found in list
+    zDPBad = .T.
+  ENDIF
+  IF [NO PRINTER]$UPPE(configlc.lblprntr01) .or. EMPT(configlc.lblprntr01) ;
+      .or. 0 = ASCAN(zzPrnList,ALLT(configlc.lblprntr01))  && valid if found in list
+    zLPBad = .T.
+  ENDIF
+  RELEASE zzPrnList
+  IF zDPBad .or. zLPBad .or. jjj <= 0
+    =pwaitMB([There are ERRORS or ommissions in the Default Printer Settings]+zCrLf+zCrLf;
+      +[Please configure the STANDARD and LABEL printers in    ADMIN > LOCAL CONFIG > PRINTERS ])
+    zStatus = [BADPRINTERS]
+  ELSE
+    SELE configlc
+    zlp = ALLT(configlc.lblprntr01)
+    IF EMPT(zlp)
+      =pwaitMB("NO label printer found  -  configure in  ADMIN > LOCAL CONFIG > PRINTING")
+      zStatus=[NOLABELPRN]
+    ELSE
+      SET PRINTER TO NAME (zlp)
+      _zResetDefPrinter = .T.
+      zStatus=[OK]
+    ENDIF
+  ENDIF
+  =CtiFpReset() &&--- FloatPointReset
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(zStatus)
+
+  PROCEDURE ResetDefPrinter && ---------------
+  IF _zResetDefPrinter .and. TYPE("_zOrigPrinter")=[C]
+    SET PRINT TO NAME (_zOrigPrinter)
+    =CtiFpReset() &&--- FloatPointReset
+  ENDIF
+
+  FUNCTION zReportPastEval &&----------------------------------------------------------------
+  PARA zlev
+  PRIV zlev,zret
+  IF zlev = 0
+    RETURN(.F.)
+  ENDIF
+  zCrCr = CHR(13)+CHR(13)
+  zret=.F.
+  zpetext=[Many features/functions are restricted or denied]+zCrCr+;
+    [This product can be REGISTERED or the Evaluation period EXTENDED ]+zCrCr+;
+    [by contacting us at  Voice 603.524.5544    Fax 603-528-6213   Email sales@tangoware.com ]
+  DO CASE
+    CASE zlev = 1 .and. [PAST EVAL]$configav.stat1
+      zret = .T.
+      =pwaitMB([Level 1 access is PAST EVALUATION period ]+zCrCr+zpetext)
+    CASE zlev = 2 .and. ([PAST EVAL]$configav.stat1 .or. [PAST EVAL]$configav.stat2)
+      zret = .T.
+      =pwaitMB([Access to this module is PAST EVALUATION period ]+zCrCr+zpetext)
+    CASE zlev = 3 .and. ([PAST EVAL]$configav.stat1 .or. [PAST EVAL]$configav.stat3)
+      zret = .T.
+      =pwaitMB([Access to this module is PAST EVALUATION period ]+zCrCr+zpetext)
+  ENDCASE
+  RELE zpetext
+  RETURN(zret)  && TRUE = disable features
+
+  FUNCTION zPastEvalCheck &&----------------------------------------------------------------
+  PARA zlev
+  PRIV zlev,zret
+  IF zlev = 0
+    RETURN(.F.)
+  ENDIF
+  zCrCr = CHR(13)+CHR(13)
+  zret=.F.
+  zpetext=[Many features/functions are restricted or denied]+zCrCr+;
+    [This product can be REGISTERED or the Evaluation period EXTENDED ]+zCrCr+;
+    [by contacting us at  Voice 603.524.5544    Fax 603-528-6213   Email sales@tangoware.com ]
+  zevtext=[You may register SPN-2000 components by contacting us at: ]+zCrCr+ ;
+    [Voice 603.524.5544    Fax 603.528.6213   Email sales@tangoware.com]
+  DO CASE
+    CASE zlev = 1 .and. [EVALUATION]==LEFT(ALLT(configav.stat1),10).and.TYPE("_zL1Remain")#"U".and._zL1Remain < 6
+      =MESSAGEBOX([Your basic  SPN-2000  evaluation period expires in  ]+ALLT(STR(_zL1Remain ,2))+[ day(s) ]+zCrCr ;
+        +zevtext,64,[SPN-2000 Notice])
+    CASE zlev = 2 .and. [EVALUATION]==LEFT(ALLT(configav.stat2),10).and.TYPE("_zL2Remain")#"U".and._zL2Remain < 6
+      =MESSAGEBOX([Your  LEVEL2  SPN-2000 evaluation period expires in  ]+ALLT(STR(_zL2Remain ,2))+[ day(s) ]+zCrCr ;
+        +zevtext,64,[SPN-2000 Notice])
+    CASE zlev = 3 .and. [EVALUATION]==LEFT(ALLT(configav.stat3),10).and.TYPE("_zL3Remain")#"U".and._zL3Remain < 6
+      =MESSAGEBOX([Your  LEVEL3  SPN-2000 evaluation period expires in  ]+ALLT(STR(_zL3Remain ,2))+[ day(s) ]+zCrCr ;
+        +zevtext,64,[SPN-2000 Notice])
+
+    CASE zlev = 1 .and. [PAST EVAL]$configav.stat1  &&//  aaabbbccc
+      zret = .T.
+      =pwaitMB([Level 1 access is PAST EVALUATION period]+zCrCr+zpetext)
+    CASE zlev = 2 .and. ([PAST EVAL]$configav.stat1 .or. [PAST EVAL]$configav.stat2)
+      zret = .T.
+      =pwaitMB([Access to this module is PAST EVALUATION period]+zCrCr+zpetext)
+    CASE zlev = 3 .and. ([PAST EVAL]$configav.stat1 .or. [PAST EVAL]$configav.stat3)
+      zret = .T.
+      =pwaitMB([Access to this module is PAST EVALUATION period]+zCrCr+zpetext)
+  ENDCASE
+  RELE zpetext,zevtext
+  RETURN(zret)  && TRUE = disable features
+
+  FUNCTION BuildInspectItemDue  &&------------------------------------------------
+  *// inspection report
+  zret= IIF(!EMPT(item),[Item: ]+ALLT(item)+[   ],[]);
+    +IIF(!EMPT(pnum),[Pnum: ]+ALLT(pnum)+[   ],[]);
+    +IIF(!EMPT(model),[Model: ]+ALLT(model)+[   ],[]);
+    +IIF(!EMPT(serial),[Serial: ]+ALLT(serial)+[   ],[]);
+    +IIF(!EMPT(duedate),[Due by: ]+DateExpand(duedate)+[   ],[]);
+    +IIF(!EMPT(remdays),[Days Rem: ]+ALLT(STR(remdays))+[   ],[]);
+    +IIF(!EMPT(duehours),[Due @: ]+ALLT(STR(duehours,9,1))+[ hrs    ],[]);
+    +IIF(!EMPT(remhours),[Rem Hours: ]+ALLT(STR(remhours,9,1)),[])
+  RETURN(zret)
+
+  PROCEDURE pSetFromAddress &&---------------------------------------
+  *// expects configlc & av to be open
+  USE configav AGAIN IN 0 ALIAS zcfgav
+  USE configlc AGAIN IN 0 ALIAS zcfglc
+  PRIV f1,f2,f3,f4,zcszc,zcsz,zc,zt
+  STORE [] TO f1,f2,f3,f4,zcszc,zcsz,zc,zt
+  zAlias = ALIAS()
+  SELE zcfgav
+  zcszc = MakeCSZ(zcfgav.fcity,zcfgav.fstate,zcfgav.fzip,zcfgav.fcountry)
+  zcsz  = MakeCSZ(zcfgav.fcity,zcfgav.fstate,zcfgav.fzip)
+  zc    = []
+  IF LEN(ALLT(zcszc)) > 45 && wont fit on one line
+    zt = zcsz
+    zc = ALLT(zcfgav.fcountry)
+  ELSE
+    zt = zcszc
+    zc = []
+  ENDIF
+  DO CASE
+    CASE EMPT(zcfgav.faddress).and.EMPT(zcfgav.faddress2)
+      f2 = zt
+      f3 = zc
+    CASE !EMPT(zcfgav.faddress).and.EMPT(zcfgav.faddress2)
+      f2 = zcfgav.faddress
+      f3 = zt
+      f4 = zc
+    CASE !EMPT(zcfgav.faddress).and.!EMPT(zcfgav.faddress2)
+      f2 = zcfgav.faddress
+      f3 = zcfgav.faddress2
+      f4 = zcszc  && try to force all
+  ENDCASE
+  f1 = zcfgav.fcompname
+  SELE zcfglc
+  REPLA fromaddr1 WITH f1,fromaddr2 WITH f2,fromaddr3 WITH f3,fromaddr4 WITH f4
+  USE IN zcfgav
+  USE IN zcfglc
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN
+  
+  FUNCTION WeekOfyear
+  LPARAM d1
+  SET CENT ON
+  zfsoy = CTOD([01/01/]+SUBS(DTOS(d1),1,4))
+  DO WHILE DOW(zfsoy) # 7
+    zfsoy = zfsoy + 1 && calcs 1st saturday of year
+  ENDDO
+  zdays = d1 - zfsoy
+  zw22 = CEILING(zdays/7)
+  IF zw22=52
+    zdcweek22= [52]
+  ELSE
+    zdcweek22= STRTR(STR(zw22 +1 ,2),[ ],[0])
+  ENDIF
+  RETURN(zdcweek22)
+  
+*!*	ddate = DATE()
+*!*	dfdoy    = CTOD("01/01/"+SUBS(DTOS(ddate),1,4))
+*!*	dnextsat = ddate
+*!*	DO WHILE DOW(dnextsat)<7
+*!*	  dnextsat = dnextsat + 1
+*!*	ENDDO
+*!*	IF YEAR(dnextsat)>YEAR(ddate) && prod week is in next year
+*!*	  mdc = SUBS(DTOS(dnextsat),3,2)+[01]
+*!*	ELSE
+*!*	  nweeks = CEIL((dnextsat-dfdoy)/7)
+*!*	  mdc = SUBS(DTOS(dnextsat),3,2)+STRTR(STR(nweeks,2),[ ],[0])
+*!*	ENDIF
+*!*	ThisForm._zDateCode= mdc
+
+  *fdoy = CTOD([01/01/]+LEFT(DTOS(d1),4))
+  *ldoy = LastDOM(CTOD([12/31/]+LEFT(DTOS(d1),4)))
+  *ds1  = DATE()-fdoy
+  *ws1  = FLOOR(ds1/7)
+    
+  FUNCTION LastDOM &&-----------------------
+  PARA d1
+  PRIV d1
+  RETURN GOMO(d1+1-DAY(d1),1)-1
+
+  FUNCTION DaysInMo &&-----------------------
+  PARA d1
+  PRIV d1
+  RETURN DAY(GOMO(d1+1-DAY(d1),1)-1)
+
+  FUNCTION IsLeapYr &&-----------------------
+  PARA d1
+  PRIV d1
+  RETURN DAY(GOMO(d1+29-DAY(d1),2-MONTH(d1))) = 29
+
+  FUNCTION GetCperbus &&---------------------------------------
+  *// avcustom must be open
+  IF LEFT(avcustom.cperbus,1)=[P] .and. !EMPT(avcustom.cperson)
+    RETURN(ALLT(avcustom.cperson))
+  ELSE
+    RETURN(ALLT(avcustom.cname))
+  ENDIF
+  *RETURN(ALLT(IIF(LEFT(avcustom.cperbus,1)=[P],avcustom.cperson,avcustom.cname)))
+
+  FUNCTION GetCperbus2 &&---------------------------------------
+  *// avcustom must be open
+  IF LEFT(avcustom2.cperbus,1)=[P] .and. !EMPT(avcustom2.cperson)
+    RETURN(ALLT(avcustom2.cperson))
+  ELSE
+    RETURN(ALLT(avcustom2.cname))
+  ENDIF
+  *RETURN(ALLT(IIF(LEFT(AVCUSTOM2.cperbus,1)=[P],AVCUSTOM2.cperson,AVCUSTOM2.cname)))
+
+  PROCEDURE PartsAnalysis &&=====================================================
+  LPARA zpnum,zdescr
+  zAlias = ALIAS()
+  USE configlc AGAIN IN 0 ALIAS zfiglc
+  SELE zfiglc
+  REPLACE fdumbmemo WITH []
+  REPLACE fdumbmemo WITH fdumbmemo + [ACTIVITY & ANALYSIS FOR...]+zCrLf+zCrLf
+  REPLACE fdumbmemo WITH fdumbmemo + [      Part Number : ]+zpnum+zCrLf
+  REPLACE fdumbmemo WITH fdumbmemo + [      Description : ]+zdescr+zCrLf+zCrLf
+  zqoh = 0
+  USE avpartss AGAIN IN 0 ALIAS zvpartss ORDER appnum
+  IF SEEK(UPPE(zpnum),[zvpartss],[appnum])
+    SELE zvpartss
+    SET ORDER TO appnum
+    SEEK UPPE(zpnum)
+    SUM pqoh TO zqoh WHILE UPPE(zvpartss.ppartnum) = UPPE(zpnum)
+    SEEK UPPE(zpnum)
+    SELE zfiglc
+    REPLACE fdumbmemo WITH fdumbmemo + [INVENTORY      Qoh     Low Lim     ReOrdQty]+zCrLf
+    REPLACE fdumbmemo WITH fdumbmemo + SPACE(9)+TRAN(zqoh,[999,999.99]);
+      +TRAN(zvpartss.plowlim,[999,999.99])+TRAN(zvpartss.reord_qty,[99,999,999.99])+zCrLf+zCrLf
+  ELSE
+    SELE zfiglc
+    REPLACE fdumbmemo WITH fdumbmemo + [Item NOT found in Inventory]+zCrLf+zCrLf
+  ENDIF
+  USE IN zvpartss
+  USE AVPRTHST AGAIN IN 0 ALIAS zprthst ORDER part_num
+  IF SEEK(UPPE(zpnum),[zprthst],[part_num])
+    STORE 0 TO zu30,zu60,zu90,zu18,zu36,zu99
+    STORE 0 TO zp30,zp60,zp90,zp18,zp36,zp99
+    SELE zprthst
+    SEEK UPPE(zpnum)
+    SCAN WHILE UPPE(zprthst.partnum) = UPPE(zpnum)
+      IF zprthst.qty < 0
+        zu30  = zu30  + IIF(BETW(zprthst.date,DATE()-30 ,DATE()),ABS(zprthst.qty),0)
+        zu60  = zu60  + IIF(BETW(zprthst.date,DATE()-60 ,DATE()-31 ),ABS(zprthst.qty),0)
+        zu90  = zu90  + IIF(BETW(zprthst.date,DATE()-90 ,DATE()-59 ),ABS(zprthst.qty),0)
+        zu18  = zu18  + IIF(BETW(zprthst.date,DATE()-180,DATE()-89 ),ABS(zprthst.qty),0)
+        zu36  = zu36  + IIF(BETW(zprthst.date,DATE()-365,DATE()-179),ABS(zprthst.qty),0)
+        zu99  = zu99  + ABS(zprthst.qty)
+      ELSE
+        zp30  = zp30  + IIF(BETW(zprthst.date,DATE()-30 ,DATE()),ABS(zprthst.qty),0)
+        zp60  = zp60  + IIF(BETW(zprthst.date,DATE()-60 ,DATE()-31 ),ABS(zprthst.qty),0)
+        zp90  = zp90  + IIF(BETW(zprthst.date,DATE()-90 ,DATE()-59 ),ABS(zprthst.qty),0)
+        zp18  = zp18  + IIF(BETW(zprthst.date,DATE()-180,DATE()-89 ),ABS(zprthst.qty),0)
+        zp36  = zp36  + IIF(BETW(zprthst.date,DATE()-365,DATE()-179),ABS(zprthst.qty),0)
+        zp99  = zp99  + ABS(zprthst.qty)
+      ENDIF
+    ENDSCAN
+    SELE zfiglc
+    REPLACE fdumbmemo WITH fdumbmemo + [USAGE HISTORY 0.....30......60......90.....180.....365.....+++]+zCrLf
+    REPLACE fdumbmemo WITH fdumbmemo + [     period > ]+TRAN(zu30,[@Z 999,999]);
+      +TRAN(zu60,[@Z 9999,999])+TRAN(zu90,[@Z 9999,999])+TRAN(zu18,[@Z 9999,999])+TRAN(zu36,[@Z 9999,999]);
+      +TRAN(0,[@Z 9999,999])+zCrLf
+    REPLACE fdumbmemo WITH fdumbmemo + [  run total > ]+TRAN(zu30,[@Z 999,999]);
+      +TRAN(zu30+zu60,[@Z 9999,999])+TRAN(zu30+zu60+zu90,[@Z 9999,999])+TRAN(zu30+zu60+zu90+zu18,[@Z 9999,999]);
+      +TRAN(zu30+zu60+zu90+zu18+zu36,[@Z 9999,999])+TRAN(zu99,[@Z 9999,999])+zCrLf+zCrLf
+    REPLACE fdumbmemo WITH fdumbmemo + [PURCH HISTORY 0.....30......60......90.....180.....365.....+++]+zCrLf
+    REPLACE fdumbmemo WITH fdumbmemo + [     period > ]+TRAN(zp30,[@Z 999,999]);
+      +TRAN(zp60,[@Z 9999,999])+TRAN(zp90,[@Z 9999,999])+TRAN(zp18,[@Z 9999,999])+TRAN(zp36,[@Z 9999,999]);
+      +TRAN(0,[@Z 9999,999])+zCrLf
+    REPLACE fdumbmemo WITH fdumbmemo + [  run total > ]+TRAN(zp30,[@Z 999,999]);
+      +TRAN(zp30+zp60,[@Z 9999,999])+TRAN(zp30+zp60+zp90,[@Z 9999,999])+TRAN(zp30+zp60+zp90+zp18,[@Z 9999,999]);
+      +TRAN(zp30+zp60+zp90+zp18+zp36,[@Z 9999,999])+TRAN(zp99,[@Z 9999,999])+zCrLf
+    RELE zu30,zu60,zu90,zu18,zu36,zu99
+    RELE zp30,zp60,zp90,zp18,zp36,zp99
+  ENDIF
+  USE IN zprthst
+  USE IN zfiglc
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN
+
+  FUNCTION GetCustTelFax &&=================
+  PARA zcm1
+  PRIV zCnt,zAlias
+  zAlias= ALIAS()
+  SELE 0
+  USE configlc AGAIN ALIAS zfiglc
+  SELE zfiglc
+  REPLACE rpt_tel WITH SPAC(0), rpt_fax WITH SPAC(0)
+  SELE 0
+  USE custcont AGAIN ALIAS zccont NOUP
+  SET ORDER TO cmnem IN zccont
+  SELE zccont
+  zCnt = 1
+  SEEK UPPE(zcm1)
+  SCAN WHILE UPPE(zccont.cmnem) = UPPE(zcm1)
+    IF zCnt = 1
+      SELE zfiglc
+      REPLA zfiglc.rpt_tel WITH zccont.num
+    ENDIF
+    zCnt = zCnt + 1
+    IF [FAX] $ UPPE(zccont.descrip)
+      SELE zfiglc
+      REPLA zfiglc.rpt_fax WITH zccont.num
+      EXIT
+    ENDIF
+  ENDSCAN
+  USE IN zccont
+  USE IN zfiglc
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN
+
+  FUNCTION GetVendTelFax &&=================
+  PARA zcm1
+  PRIV zCnt,zAlias
+  zAlias= ALIAS()
+  SELE 0
+  USE configlc AGAIN ALIAS zfiglc
+  SELE zfiglc
+  REPLACE rpt_tel WITH SPAC(0), rpt_fax WITH SPAC(0)
+  SELE 0
+  USE vendcont AGAIN ALIAS zccont NOUP
+  SET ORDER TO vmnem IN zccont
+  SELE zccont
+  SEEK UPPE(zcm1)
+  zCnt = 1
+  SCAN WHILE UPPE(zccont.vmnem) = UPPE(zcm1)
+    IF zCnt = 1
+      SELE zfiglc
+      REPLA zfiglc.rpt_tel WITH zccont.num
+    ENDIF
+    zCnt = zCnt + 1
+    IF [FAX] $ UPPE(zccont.descrip)
+      SELE zfiglc
+      REPLA zfiglc.rpt_fax WITH zccont.num
+      EXIT
+    ENDIF
+  ENDSCAN
+  USE IN zccont
+  USE IN zfiglc
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN
+
+  FUNCTION MakeCSZ &&=======================
+  LPARAM zc,zs,zz,cc
+  PRIV zstr
+  zstr = []
+  zstr = zstr + IIF(!EMPT(zc),ALLT(zc)+[, ],[])
+  zstr = zstr + IIF(!EMPT(zs),ALLT(zs)+[  ],[])
+  zstr = zstr + IIF(!EMPT(zz),ALLT(zz)+[  ],[])
+  zstr = zstr + IIF(!EMPT(cc),ALLT(cc),[])
+  RETURN(ALLT(zstr))
+
+  PROCEDURE pwaitMB &&================================
+  LPARA ztext,zmess
+  zmess=IIF(PARAM()=2,[ Message ]+zmess,[ Message])
+  =MESSAGEBOX(ztext,48,zmess)
+  RETURN
+
+  FUNCTION zAlphaDuetext &&===========================================================
+  PARA d1,zint,zstat
+  PRIV d1,d2,d_out,zint,zstat,d3
+  d2 = d1-DATE()
+  d3 = DateExpand(d1)
+  DO CASE
+    CASE d1={}
+      d_out = [Not Required] &&[UnKnown]
+    CASE zint=0 && .or. (!EMPT(zstat).and.![STANDARD]$UPPE(zstat))
+      d_out = [Not Required]
+    CASE d2 > 0
+      d_out = IIF(ABS(d2)=1,'Tomorrow!','in '+ALLT(TRAN(ABS(d2),[999,999]))+' days.')
+    CASE d2 < 0
+      d_out = IIF(ABS(d2)=1,'Yesterday!',ALLT(TRAN(ABS(d2),[999,999]))+' days ago!')
+    CASE d2 = 0
+      d_out = 'Today !'
+  ENDCASE
+  d_out = IIF([Not Required]$d_out,d_out,d3+[  ]+d_out)
+  RETURN(ALLT(d_out))
+
+  FUNCTION psc && ---------------------
+  PARA p1,s1,c1,w1,r1
+  PRIV p1,s1,c1,w1,r1
+  r1 = STRTR( ALLT(p1)+IIF(!EMPT(s1),[ \ ]+ALLT(s1),'')+IIF(!EMPT(c1),[ ^ ]+ALLT(c1),''),[\],IIF(w1,[~],[\]) )
+  RETURN(r1)
+
+  PROCEDURE CommFieldSetup &&--------------------------------------------
+  =INSM(.T.)  && Comments field configure tab key
+
+  RETURN  && stopped Apr-22-2000  class level now handles tabs
+
+  IF 1=1  &&TYPE("zzCommTab")=[U]
+    zzCommTab = 0 &&// 13Oct1999 now just accepting default TAB
+  ENDIF
+  DO CASE     && zzCommTab is pubvar
+    CASE zzCommTab = 2
+      ON KEY LABEL TAB KEYBOARD SPACE(2)
+    CASE zzCommTab = 3
+      ON KEY LABEL TAB KEYBOARD SPACE(4)
+    CASE zzCommTab = 4
+      ON KEY LABEL TAB KEYBOARD SPACE(8)
+    OTHERWISE
+      ON KEY LABEL TAB
+  ENDCASE
+  RETURN
+
+  PROCEDURE gDisableNavBars &&----------------------------
+  oapp.otoolbar.cmdNext.enabled =.F.
+  oapp.otoolbar.cmdPrior.enabled=.F.
+  oapp.otoolbar.cmdlast.enabled =.F.
+  oapp.otoolbar.cmdFirst.enabled=.F.
+
+  PROCEDURE gEnableNavBars &&----------------------------
+  oapp.otoolbar.cmdNext.enabled =.T.
+  oapp.otoolbar.cmdPrior.enabled=.T.
+  oapp.otoolbar.cmdlast.enabled =.T.
+  oapp.otoolbar.cmdFirst.enabled=.T.
+
+  PROCEDURE pSetToolBars &&-----------------------------
+  * disables these items on main toolbar   this removes them
+  * called from forms in their activate method
+  SET DECI TO 4
+  SET TALK OFF
+  SET EXACT OFF
+  =CtiFpReset() &&--- FloatPointReset
+  IF TYPE("zzStartDir")=[U]
+    PUBLIC zzStartDir
+    zzStartDir = [C:\SPN]
+  ENDIF
+  IF TYPE("_pUserId")=[U]
+    RELE _pUserId
+    PUBLIC _pUserId
+    zpuse = ALLT(STRTR(SYS(0),[#],[]))
+    IF LEN(zpuse)>3
+      _pUserId = zpuse
+    ELSE
+      _pUserId = [Unknown]
+    ENDIF
+  ENDIF
+  IF TYPE("_pSecIsOn")=[U]
+    RELE   _pSecIsOn
+    PUBLIC _pSecIsOn
+    _pSecIsOn = .F.
+  ENDIF
+  IF TYPE("zVpmRightClickOk")=[U]
+    RELE zVpmRightClickOk
+    PUBLIC zVpmRightClickOk
+    zVpmRightClickOk =.F.
+  ENDIF
+  RELE zCrLf,CrCr,zCrCr
+  PUBLIC zCrLf,CrCr,zCrCr
+  CrCr  = CHR(13)+CHR(13)
+  zCrCr = CHR(13)+CHR(13)
+  zCrLf = CHR(13)+CHR(10)
+  SET DELE ON
+  IF FILE("C:\THISFILEONLYON.CTI")
+    SET PRINT FONT [Lucida Console], 8
+  ENDIF
+  *oapp.otoolbar.cmdPrint.enabled=.F.
+  *oapp.otoolbar.cmdPrint.visible=.F.
+  oapp.otoolbar.cmdGroupDelete.enabled= .F. &&IIF(FILE("GROUPDEL.OK"),.T.,.F.)
+  *oapp.otoolbar.cmdParent.enabled=.F.
+  ON KEY LABEL ESCAPE DO zTrapEscape &&--- below
+  ON KEY LABEL F11 Do HardCopy WITH "SPN2000"
+  _dblclick=.50
+  RETURN
+
+  PROCEDURE zTrapEscape  &&-------------------------
+  PRIV wtd
+  KEYB "{Ctrl+F4}"
+  ON KEY LABEL f3 KEYB "{Ctrl+F4}"
+  **=pwaitMB([Click CANCEL button on toolbar to restore changes])
+  RETURN
+  *WAIT [ActiveForm Name  =] +_SCREEN.ActiveForm.Name WIND TIME 2
+  =messagebox([ESCAPE KEY PRESSED ...]+CHR(13)+CHR(13);
+    +[Click the CANCEL button on the Toolbar]+CHR(13)+[if you need to restore data (cancel changes)];
+    +CHR(13)+CHR(13);
+    +[Click the SAVE button on the Toolbar]+CHR(13)+[if you want to save data ],0+48,[AC-TOOLS Advisory])
+  RETURN
+
+  PROCEDURE _pSetCent &&--------------------------------------------------
+  ** change in any report forms  DataEnvironment (DE) BeforeOpentables
+  * Stopped using 15Feb1999 because VPM5.1 has its own now
+  * that the customer can set in Environment
+  *SET CENT ON
+  *SET CENT TO 19 ROLL 33
+  SET DECI TO 4
+  SET EXACT OFF
+  SET TALK OFF
+  IF TYPE("zzStartDir")=[U]
+    PUBLIC zzStartDir
+    zzStartDir = [C:\SPN]
+  ENDIF
+  IF TYPE("_pUserId")=[U]
+    RELE _pUserId
+    PUBLIC _pUserId
+    zpuse = ALLT(STRTR(SYS(0),[#],[]))
+    IF LEN(zpuse)>3
+      _pUserId = zpuse
+    ELSE
+      _pUserId = [Unknown]
+    ENDIF
+  ENDIF
+  IF TYPE("_pSecIsOn")=[U]
+    RELE   _pSecIsOn
+    PUBLIC _pSecIsOn
+    _pSecIsOn = .F.
+  ENDIF
+  RELE zCrLf,CrCr,zCrCr
+  PUBLIC zCrLf,CrCr,zCrCr
+  CrCr  = CHR(13)+CHR(13)
+  zCrCr = CHR(13)+CHR(13)
+  zCrLf = CHR(13)+CHR(10)
+  IF FILE("C:\THISFILEONLYON.CTI")
+    SET PRINT FONT [Lucida Console], 8
+  ENDIF
+  SET NEAR ON
+  SET DELE ON
+  =CtiFpReset() &&--- FloatPointProb
+  ON KEY LABEL F11 Do HardCopy WITH "SPN2000"
+  RETURN
+
+  FUNCTION GenKitPk &&--------------------------------------------------
+  PRIV NextNum ,zAlias,ccnt
+  zAlias=ALIAS()
+  SELE 0
+  USE seq_nums
+  STORE seq_nums.kit + 1 TO NextNum
+  SELE 0
+  USE kits_m AGAIN ALIAS zkits ORDER idnum
+  SELE zkits
+  DO WHILE .T.
+    IF SEEK(NextNum,[zkits],[idnum])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  REPLACE seq_nums.kit WITH NextNum, seq_nums.kit_hold WITH NextNum IN seq_nums
+  USE IN seq_nums
+  USE IN zkits
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenGlAdjPk &&--------------------------------------------------
+  PRIV NextNum ,zAlias,ccnt
+  zAlias=ALIAS()
+  SELE 0
+  USE seq_nums AGAIN ALIAS seqs2
+  STORE seqs2.gladj + 1 TO NextNum
+  SELE 0
+  USE gladjmnt AGAIN ALIAS zgladjmnt ORDER id_a
+  SELE zgladjmnt
+  DO WHILE .T.
+    IF SEEK(NextNum,[zgladjmnt],[id_a])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  REPLACE seqs2.gladj WITH NextNum, seqs2.gladj_hold WITH NextNum IN seqs2
+  USE IN seqs2
+  USE IN zgladjmnt
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenCheckIdNum &&--------------------------------------------------
+  LPARAM xBanknum
+  PRIV NextNum ,zAlias,ccnt
+  STORE 0 TO NextNum,ccnt
+  zAlias=ALIAS()
+  SELE 0
+  USE banks AGAIN ALIAS zbanks
+  SELE zbanks
+  LOCATE FOR zbanks.banknum = xBanknum
+  STORE zbanks.chkidnum + 1 TO NextNum
+  SELE 0
+  USE checkbk AGAIN ALIAS zcheckbk ORDER bnk_id_a
+  SELE zcheckbk
+  SET KEY TO STR(zbanks.banknum ,2) IN zcheckbk
+  DO WHILE .T.
+    IF SEEK(STR(zbanks.banknum,2)+STR(NextNum,10),[zcheckbk],[bnk_id_a])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  REPLACE zbanks.chkidnum WITH NextNum  IN zbanks
+  USE IN zbanks
+  USE IN zcheckbk
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION OldGenCheckPk &&--------------------------------------------------
+  PRIV NextNum ,zAlias,ccnt
+  zAlias=ALIAS()
+  SELE 0
+  USE seq_nums
+  STORE seq_nums.chkidnum + 1 TO NextNum
+  SELE 0
+  USE checkbk AGAIN ALIAS zcheckbk ORDER id_a
+  SELE zcheckbk
+  DO WHILE .T.
+    IF SEEK(NextNum,[zcheckbk],[id_a])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  REPLACE seq_nums.chkidnum WITH NextNum IN seq_nums
+  USE IN seq_nums
+  USE IN zcheckbk
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenTcPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.tbo_comp + 1 TO NextNum
+  REPLACE seq_nums.tbo_comp WITH NextNum
+  REPLACE seq_nums.tc_hold WITH NextNum
+  USE IN seq_nums
+  SELE (zAlias)
+  RETURN(NextNum)
+
+  FUNCTION GenTcmPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.tbo_comp_m + 1 TO NextNum
+  REPLACE seq_nums.tbo_comp_m WITH NextNum
+  REPLACE seq_nums.tcm_hold WITH NextNum
+  USE IN seq_nums
+  SELE (zAlias)
+  RETURN(NextNum)
+
+  FUNCTION GenFdPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.fd + 1 TO NextNum
+  REPLACE seq_nums.fd WITH NextNum
+  REPLACE seq_nums.fd_hold WITH NextNum
+  USE IN seq_nums
+  SELE (zAlias)
+  RETURN(NextNum)
+
+  PROCEDURE GenTeqpKey &&-------------------------------------------------
+  PRIV ncnt,zAlias,ccnt
+  zAlias=ALIAS()
+  ncnt=0
+  SELE 0
+  USE tequip_m AGAIN ALIAS zqvggakj
+  SELE zqvggakj
+  SCAN
+    ncnt = IIF(VAL(ALLT(zqvggakj.key_m))>ncnt,VAL(ALLT(zqvggakj.key_m)),ncnt)
+  ENDSCAN
+  USE IN zqvggakj
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  ccnt= STR(IIF(ncnt<1,1,ncnt+1),6)
+  RETURN(ccnt)
+
+  FUNCTION LogStickPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  ***************************
+  * GRAB NEXT NUMBER AND COMMIT IT
+  * ALSO STORE IT TO HOLD AREA FOR REUSE
+  * IF AT SAVE TIME  THEY  DONT SAVE IT .AND. NO ONE ELSE HAS
+  * USED NEXT # JUST GIVE IT BACK, SEE SAVER
+  ******************************
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.log + 1 TO NextNum
+  REPLACE seq_nums.log       WITH NextNum IN seq_nums
+  REPLACE seq_nums.log_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenMdocPk &&--------------------------------------------------
+  PRIV NextNum ,zAlias,ccnt
+  zAlias=ALIAS()
+  SELE 0
+  USE seq_nums
+  STORE seq_nums.MISCDOCS + 1 TO NextNum
+  SELE 0
+  USE MISCDOCS AGAIN ALIAS zmdocs ORDER idnum
+  SELE zmdocs
+  DO WHILE .T.
+    IF SEEK(NextNum,[zmdocs],[idnum])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  REPLACE seq_nums.MISCDOCS WITH NextNum IN seq_nums
+  USE IN seq_nums
+  USE IN zmdocs
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenManPk &&--------------------------------------------------
+  PRIV ncnt,zAlias,ccnt
+  zAlias=ALIAS()
+  ncnt=0
+  SELE 0
+  USE MANUALS AGAIN ALIAS zqqvggakj
+  SELE zqqvggakj
+  CALCULATE MAX(key) TO ncnt FOR key # 999999
+  *!*	IF mcnt = 999999
+  *!*	  mcnt = 0
+  *!*	ENDIF
+  *!*	SCAN
+  *!*	  ncnt = IIF(VAL(ALLT(zqqvggakj.key_m))>ncnt,VAL(ALLT(zqqvggakj.key_m)),ncnt)
+  *!*	ENDSCAN
+  USE IN zqqvggakj
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  ccnt= IIF(ncnt<1,1,ncnt+1)
+  RETURN(ccnt)
+
+  FUNCTION GenLoanerPK &&--------------------------------------------------
+  PRIV ncnt,zAlias,ccnt
+  zAlias=ALIAS()
+  ncnt=0
+  SELE 0
+  USE AVLOANER AGAIN ALIAS zqqvggakj
+  SELE zqqvggakj
+  CALCULATE MAX(idnum) TO ncnt
+  USE IN zqqvggakj
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  ccnt= IIF(ncnt<1,1,ncnt+1)
+  RETURN(ccnt)
+
+  *!*	PRIV NextNum,zAlias  GenLoanerPK
+  *!*	zAlias=ALIAS()
+  *!*	USE seq_nums IN 0
+  *!*	STORE seq_nums.man + 1 TO NextNum
+  *!*	REPLACE seq_nums.man WITH NextNum
+  *!*	REPLACE seq_nums.man_hold  WITH NextNum && no specific need to protect
+  *!*	USE IN seq_nums
+  *!*	IF !EMPT(zalias)
+  *!*	  SELE (zalias)
+  *!*	ENDIF
+  *!*	RETURN(NextNum)
+
+  FUNCTION GenChkPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.chk + 1 TO NextNum
+  SELE 0
+  USE checkdet AGAIN ALIAS zcdet ORDER chkkey
+  SELE zcdet
+  DO WHILE .T.
+    IF SEEK(NextNum,[zcdet],[chkkey])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  USE IN zcdet
+  REPLACE seq_nums.chk WITH NextNum IN seq_nums
+  REPLACE seq_nums.chk_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenDepPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.dep + 1 TO NextNum
+  SELE 0
+  USE depdet AGAIN ALIAS zddet ORDER depkey
+  SELE zddet
+  DO WHILE .T.
+    IF SEEK(NextNum,[zddet],[depkey])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  USE IN zddet
+  REPLACE seq_nums.dep WITH NextNum IN seq_nums
+  REPLACE seq_nums.dep_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenCbkPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.chkbk + 1 TO NextNum
+  SELE 0
+  USE checkbk AGAIN ALIAS zcbook ORDER chkkey
+  SELE zcbook
+  DO WHILE .T.
+    IF SEEK(NextNum,[zcbook],[chkkey])
+      NextNum = NextNum + 1
+    ELSE
+      EXIT
+    ENDIF
+  ENDDO
+  USE IN zcbook
+  REPLACE seq_nums.chkbk WITH NextNum IN seq_nums
+  REPLACE seq_nums.chkbk_hold  WITH NextNum IN seq_nums
+  SELE seq_nums
+  *WAIT STR(seq_nums.chkbk ) WIND TIME 2
+  USE
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION SkuPk &&--------------------------------------------------
+  *// called from VPM from within avpartss DD
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.sku + 1     TO   NextNum
+  REPLACE seq_nums.sku       WITH NextNum IN seq_nums
+  REPLACE seq_nums.sku_hold  WITH NextNum IN seq_nums && no specific need to protect
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+FUNCTION SkuPk2 &&--------------------------------------------------
+PRIV NextNum,zAlias,zfp,zfs,zfb,znp,zns,znb
+*############################################################
+*// PoReceive now uses an on form version of this
+
+*// ensures no dups in inventory, used other than in inventory DD default pk
+*// normal usage in inventory, p&e, wo add -  checks for dups
+*// needs to always test that final picked sku is NOT in any of the 3 tables
+*// should ensure that next sku is never lower than previous stored sku# (could cause orphans to come back)
+*// nextnum should always increment
+FLUSH
+zAlias=ALIAS()
+USE f:\nacfox\seq_nums AGAIN IN 0 ALIAS zseq_nums 
+*USE INV AGAIN IN 0 ALIAS INV ORDER sku NOUP
+USE f:\nacfox\batchprt AGAIN IN 0 ALIAS zvbatchprt ORDER sku NOUP
+USE f:\nacfox\nsihist  AGAIN IN 0 ALIAS znsihist ORDER sku NOUP
+SELE zseq_nums
+STOR zseq_nums.sku + 1 TO NextNum
+STOR .F. TO zfp,zfs,zfb,zfn
+STOR 0   TO znp,zns,znb,znn
+
+SELE znsihist
+SET ORDER TO sku
+GO BOTT
+znn = znsihist.sku
+
+SELE zvbatchprt
+SET ORDER TO sku
+GO BOTT
+znb = zvbatchprt.sku
+
+*// get highest each and force nextnum up to it
+zMaxAll = MAX(0,znp,zns,znb,znn) + 1
+zMaxAll = IIF(zMaxAll > 99999999, 0, zMaxAll )  && exclude cti demo recs
+*WAIT [Next ]+STR(NextNum,7) + [     MaxMax  ]+STR(zMaxAll,7)+[     Part MAX ]+STR(znp,7)+[     Ser MAX ]+STR(zns,7)+[     Batch MAX ]+STR(znb,7) WIND
+NextNum = MAX(0,NextNum,zMaxAll)
+NextNum = IIF(NextNum>99999999,1,NextNum)
+DO WHILE .T.
+  zfb = SEEK(NextNum,[zvbatchprt],[sku])
+  zfn = SEEK(NextNum,[znsihist],[sku])
+  IF zfb .or. zfn
+    NextNum = NextNum + 1
+    *WAIT STR(nextnum) WIND TIME .1
+    LOOP
+  ELSE
+    EXIT
+  ENDIF
+ENDDO
+USE IN zvbatchprt
+USE IN znsihist
+SELE zseq_nums
+REPLACE zseq_nums.sku WITH NextNum IN zseq_nums
+USE IN zseq_nums
+IF !EMPT(zAlias)
+  SELE (zAlias)
+ENDIF
+RETURN(NextNum)
+
+  *!*	FUNCTION OldSkuPk2 &&--------------------------------------------------
+  *!*	PRIV NextNum,zAlias
+  *!*	*// ensures no dups in inventory, used other than in inventory DD default pk
+  *!*	*// normal usage in inventory, p&e, wo add -  checks for dups
+  *!*	*// needs to always test that final picked sku is NOT in any of the 3 tables
+  *!*	*// should ensure that next sku is never lower than previous stored sku# (could cause orphans to come back)
+  *!*	*// nextnum should always increment
+  *!*	zAlias=ALIAS()
+  *!*	USE seq_nums IN 0
+  *!*	USE avpartss AGAIN IN 0 ALIAS zvpartss ORDER sku NOUP
+  *!*	SELE seq_nums
+  *!*	STORE seq_nums.sku + 1 TO NextNum
+  *!*	SELE zvpartss
+  *!*	DO WHILE .T.
+  *!*	  IF SEEK(NextNum,[zvpartss],[sku])
+  *!*	    NextNum = NextNum + 1
+  *!*	  ELSE
+  *!*	    EXIT
+  *!*	  ENDIF
+  *!*	ENDDO
+  *!*	USE serparts AGAIN IN 0 ALIAS zvserparts ORDER sku NOUP
+  *!*	SELE zvserparts
+  *!*	DO WHILE .T.
+  *!*	  IF SEEK(NextNum,[zvserparts],[sku])
+  *!*	    NextNum = NextNum + 1
+  *!*	  ELSE
+  *!*	    EXIT
+  *!*	  ENDIF
+  *!*	ENDDO
+  *!*	SELE zvserparts
+  *!*	USE
+  *!*	USE batchprt AGAIN IN 0 ALIAS zvbatchprt ORDER sku NOUP
+  *!*	SELE zvbatchprt
+  *!*	DO WHILE .T.
+  *!*	  IF SEEK(NextNum,[zvbatchprt],[sku])
+  *!*	    NextNum = NextNum + 1
+  *!*	  ELSE
+  *!*	    EXIT
+  *!*	  ENDIF
+  *!*	ENDDO
+  *!*	SELE zvbatchprt
+  *!*	USE
+  *!*	SELE seq_nums
+  *!*	REPLACE seq_nums.sku       WITH NextNum
+  *!*	REPLACE seq_nums.sku_hold  WITH NextNum && no specific need to protect
+  *!*	USE IN seq_nums
+  *!*	USE IN zvpartss
+  *!*	IF !EMPT(zAlias)
+  *!*	  SELE (zAlias)
+  *!*	ENDIF
+  *!*	RETURN(NextNum)
+
+  FUNCTION GenQlPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.ql + 1 TO NextNum
+  REPLACE seq_nums.ql WITH NextNum IN seq_nums
+  REPLACE seq_nums.ql_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION VendAdjPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.vadj + 1 TO NextNum
+  REPLACE seq_nums.vadj WITH NextNum IN seq_nums
+  REPLACE seq_nums.vadj_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION CustCmPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.ccm + 1 TO NextNum
+  REPLACE seq_nums.ccm       WITH NextNum IN seq_nums
+  REPLACE seq_nums.ccm_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION CustAdjPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.cadj + 1 TO NextNum
+  REPLACE seq_nums.cadj WITH NextNum IN seq_nums
+  REPLACE seq_nums.cadj_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenPayblePK() &&---------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.p_e_paynum + 1 TO NextNum
+  REPLACE seq_nums.p_e_paynum  WITH NextNum IN seq_nums
+  REPLACE seq_nums.p_e_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenROPK() &&---------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.ro + 1 TO NextNum
+  REPLACE seq_nums.ro  WITH NextNum IN seq_nums
+  REPLACE seq_nums.ro_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenPOPK() &&---------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.po + 1 TO NextNum
+  REPLACE seq_nums.po  WITH NextNum IN seq_nums
+  REPLACE seq_nums.po_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenRGOPK() &&---------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.rgo + 1 TO NextNum
+  REPLACE seq_nums.rgo  WITH NextNum IN seq_nums
+  REPLACE seq_nums.rgo_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenPkRecInv &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE rcinvoic AGAIN IN 0 ALIAS xvinvoic ORDER iinvnum
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.rinv + 1 TO NextNum
+  DO WHILE .T.
+    IF !SEEK(NextNum,[xvinvoic],[iinvnum])
+      EXIT
+    ELSE
+      NextNum = NextNum + 1
+    ENDIF
+  ENDDO
+  REPLACE seq_nums.rinv       WITH NextNum IN seq_nums
+  REPLACE seq_nums.rinv_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  USE IN xvinvoic
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenInvPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE avinvoic AGAIN IN 0 ALIAS xvinvoic ORDER iinvnum
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.inv + 1 TO NextNum
+  DO WHILE .T.
+    IF !SEEK(NextNum,[xvinvoic],[iinvnum])
+      EXIT
+    ELSE
+      NextNum = NextNum + 1
+    ENDIF
+  ENDDO
+  REPLACE seq_nums.inv       WITH NextNum IN seq_nums
+  REPLACE seq_nums.inv_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  USE IN xvinvoic
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION WarClaimPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.wc + 1 TO NextNum
+  REPLACE seq_nums.wc WITH NextNum IN seq_nums
+  REPLACE seq_nums.wc_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION WarAppPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.wa + 1 TO NextNum
+  REPLACE seq_nums.wa WITH NextNum IN seq_nums
+  REPLACE seq_nums.wa_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenQuotPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.quote + 1 TO NextNum
+  REPLACE seq_nums.quote WITH NextNum IN seq_nums
+  REPLACE seq_nums.quote_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenWoStatPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.wostat + 1 TO NextNum
+  REPLACE seq_nums.wostat WITH NextNum IN seq_nums
+  ****REPLACE seq_nums.wo_hold WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenWoPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.WO + 1 TO NextNum
+  REPLACE seq_nums.WO WITH NextNum IN seq_nums
+  REPLACE seq_nums.wo_hold WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenMCFPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.matcert + 1 TO NextNum
+  REPLACE seq_nums.matcert WITH NextNum IN seq_nums
+  REPLACE seq_nums.matcert_h  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION Gen337Pk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.f337 + 1 TO NextNum
+  REPLACE seq_nums.f337 WITH NextNum IN seq_nums
+  REPLACE seq_nums.f337_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION WbFixedPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.wbf + 1 TO NextNum
+  REPLACE seq_nums.wbf WITH NextNum IN seq_nums
+  REPLACE seq_nums.wbf_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION WbRotaryPk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.wbr + 1 TO NextNum
+  REPLACE seq_nums.wbr WITH NextNum IN seq_nums
+  REPLACE seq_nums.wbr_hold  WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  ***WAIT [New WB Rotary # Picked ]+STR(NextNum) WIND
+  RETURN(NextNum)
+
+  FUNCTION Gen8130Pk &&--------------------------------------------------
+  PRIV NextNum,zAlias
+  zAlias=ALIAS()
+  USE seq_nums IN 0
+  SELE seq_nums
+  STORE seq_nums.f8130 + 1 TO NextNum
+  REPLACE seq_nums.f8130 WITH NextNum IN seq_nums
+  REPLACE seq_nums.f8130_hold WITH NextNum IN seq_nums
+  USE IN seq_nums
+  IF !EMPT(zAlias)
+    SELE (zAlias)
+  ENDIF
+  RETURN(NextNum)
+
+  FUNCTION GenQKeyCode &&-----------------------------------------------------------------------
+  ** for quotes reg
+  PARA zs,zn
+  PRIV zs,zn,zc,zl,zp,zz,zo,z1,z2,z3,z4,z5,ml,s1,s2,s3,s4,s5,n1,n2,n3,n4,n5
+  zs = ALLT(zs)
+  zn = ALLT(zn)
+  IF LEN(zs)#4 .OR. LEN(zn)<3
+    RETURN([FALSE])
+  ENDIF
+  STORE 0 TO zc,zl,zp,zz
+  FOR ttt = 1 TO LEN(zn)  && analyze all characters in NAME
+    ml = SUBS(zn,ttt,1)   && get current character
+    zc = zc + IIF(BETW(ASC(ml),65,90),1,0)  && count
+    zl = zl + IIF(BETW(ASC(ml),97,122),1,0)
+    zp = zp + IIF(BETW(ASC(ml),33,47),1,0)
+    zp = zp + IIF(BETW(ASC(ml),58,64),1,0)
+    zp = zp + IIF(BETW(ASC(ml),91,96),1,0)
+    zz = zz + 93-ASC(ml)
+  ENDFOR
+  zo = ALLT(STR(zz))
+  STORE [] TO z1,z2,z3,z4,z5
+  FOR ttt = 1 TO LEN(zo)
+    ml = SUBS(zo,ttt,1)
+    z1 = IIF(ttt=1,ml,z1)
+    z2 = IIF(ttt=2,ml,z2)
+    z3 = IIF(ttt=3,ml,z3)
+    z4 = IIF(ttt=4,ml,z4)
+    z5 = IIF(ttt=5,ml,z5)
+  ENDFOR
+  s1=VAL(SUBS(zs,4,1))
+  s2=VAL(SUBS(zs,3,1))
+  s3=VAL(SUBS(zs,2,1))
+  s4=VAL(SUBS(zs,1,1))
+  s5=CEIL((s3+s4)+IIF(MOD(s3,2)=0,1,2)+IIF(MOD(s4,2)=0,2,5))
+  n1=66+CEILING(LEN(zn)/5)
+  n2=79-OCCU(CHR(32),zn)
+  n3=71+CEIL(zc/2)
+  n4=85-CEIL(zl/2)
+  n5=68+zp
+  f1=z3+CHR(n5)+CHR(89-(s4+4))+CHR(n4)+CHR(s3+3+65)+CHR(n3);
+    +CHR(89-(s2+2))+CHR(n2)+CHR(s1+1+65)+CHR(n1)+CHR(65+(s5))+;
+    z1+z5+[Q]+z4+z2
+  RETURN(ALLT(f1))
+
+  FUNCTION GenZKeyCode &&-----------------------------------------------------------------------
+  **  BASE PRODUCT   REG KEY CODE
+  PARA zs,zn
+  PRIV zs,zn,zc,zl,zp,zz,zo,z1,z2,z3,z4,z5,ml,s1,s2,s3,s4,s5,n1,n2,n3,n4,n5
+  zs = ALLT(zs)
+  zn = ALLT(zn)
+  IF LEN(zs)#4 .OR. LEN(zn)<3
+    RETURN([FALSE])
+  ENDIF
+  STORE 0 TO zc,zl,zp,zz
+  FOR ttt = 1 TO LEN(zn)
+    ml = SUBS(zn,ttt,1)
+    zc = zc + IIF(BETW(ASC(ml),65,90),1,0)
+    zl = zl + IIF(BETW(ASC(ml),97,122),1,0)
+    zp = zp + IIF(BETW(ASC(ml),33,47),1,0)
+    zp = zp + IIF(BETW(ASC(ml),58,64),1,0)
+    zp = zp + IIF(BETW(ASC(ml),91,96),1,0)
+    zz = zz + 93-ASC(ml)
+  ENDFOR
+  zo = ALLT(STR(zz))
+  STORE [] TO z1,z2,z3,z4,z5
+  FOR ttt = 1 TO LEN(zo)
+    ml = SUBS(zo,ttt,1)
+    z1 = IIF(ttt=1,ml,z1)
+    z2 = IIF(ttt=2,ml,z2)
+    z3 = IIF(ttt=3,ml,z3)
+    z4 = IIF(ttt=4,ml,z4)
+    z5 = IIF(ttt=5,ml,z5)
+  ENDFOR
+  s1=VAL(SUBS(zs,1,1))
+  s2=VAL(SUBS(zs,2,1))
+  s3=VAL(SUBS(zs,3,1))
+  s4=VAL(SUBS(zs,4,1))
+  s5=CEIL((s3+s4)+IIF(MOD(s3,2)=0,1,2)+IIF(MOD(s4,2)=0,2,5))
+  n1=65+CEILING(LEN(zn)/5)
+  n2=80-OCCU(CHR(32),zn)
+  n3=70+CEIL(zc/2)
+  n4=86-CEIL(zl/2)
+  n5=68+zp
+  f1=CHR(n1)+CHR(89-(s4+4))+CHR(n2)+CHR(s3+3+65)+CHR(n3);
+    +CHR(89-(s2+2))+CHR(n4)+CHR(s1+1+65)+CHR(n5)+CHR(65+(s5))+;
+    z1+z2+z3+z4+z5
+  RETURN(ALLT(f1))
+
+  FUNCTION Ok2Delete &&------------------------------------------
+  PARA m1
+  PRIV m1,tpw,altpass,SkipPw
+  altpass = ALLT(STR(DOW(DATE()) * ASC(LEFT(CMON(DATE()),1)) *;
+    VAL(SUBS(DTOS(DATE()),3,2)) * VAL(SUBS(DTOS(DATE()),5,2))*;
+    VAL(SUBS(DTOS(DATE()),7,2))))
+  SkipPw = IIF(mmmpass$configav.del_pwstr.OR.mmmpass=[O],.F.,.T.)
+  IF SkipPw.OR.EMPT(configav.delete_pw).OR.p_DelRec && currently in use
+    RETURN                                && resets each time thru mmenu
+  ENDIF
+  tpw=get_one(-9,[Your Delete Password for  ]+m1+[  ];
+    ,SPAC(10),[A],[NNNNNNNNNN])
+  IF (tpw==configav.delete_pw.OR.ALLT(tpw)=altpass);
+      .AND.LAST()=13.AND.!EMPT(tpw)
+    STORE .T. TO p_DelRec
+    RETURN(.T.)
+  ELSE
+    RETURN(.F.)
+  ENDIF
+
+
+  FUNCTION yyyymm &&---------------------------------------------
+  PARA d1 && real date
+  PRIV d1
+  d1=fdatecheck(d1,0)  &&--- SUBS(DTOS(d1),1,4)+SUBS(DTOS(d1),5,2)
+  RETURN(LEFT(DTOS(d1),6))
+
+  FUNCTION YM2MY &&---------------------------------------------
+  PARA yyyymm && real date
+  PRIV yyyymm,mm,yy,mmyyyy
+  mm=RIGHT(yyyymm,2)
+  yy=LEFT(yyyymm,4)
+  DO CASE
+    CASE mm=[01]
+      mm=[Jan]
+    CASE mm=[02]
+      mm=[Feb]
+    CASE mm=[03]
+      mm=[Mar]
+    CASE mm=[04]
+      mm=[Apr]
+    CASE mm=[05]
+      mm=[May]
+    CASE mm=[06]
+      mm=[Jun]
+    CASE mm=[07]
+      mm=[Jul]
+    CASE mm=[08]
+      mm=[Aug]
+    CASE mm=[09]
+      mm=[Sep]
+    CASE mm=[10]
+      mm=[Oct]
+    CASE mm=[11]
+      mm=[Nov]
+    CASE mm=[12]
+      mm=[Dec]
+  ENDCASE
+  RETURN(mm+[-]+yy)
+
+  FUNCTION zfonedial && ++++++++++++++++++++++++++
+  ** used in customer AVM import function
+  PARA num_in
+  PRIV num_in,num_out,cus_ac,our_ac,DigNum
+  IF EMPTY(num_in)
+    RETURN(SPACE(24))
+  ENDIF
+  DigNum7 = SUBS(num_in,5,8)
+  cus_c   = SUBS(num_in,1,3)
+  our_c   = LEFT(ALLTR(oldconfig.fphone),3)
+  IF cus_c = our_c  &&& in this A/C
+    IF SUBS(num_in,5,3) $ oldconfig.flocalexch  &&& not toll call
+      num_out = PADR(DigNum7,24)
+    ELSE
+      DO CASE
+        CASE LEN(ALLT(num_in))<7
+          num_out = SPACE(24)
+        CASE 'Dial  1 + 7digit' $ oldconfig.fmisc003
+          num_out = PADR('1-'+DigNum7,24)
+        CASE 'Dial  7digits only' $ oldconfig.fmisc003
+          num_out = PADR(DigNum7,24)
+        CASE 'Dial  1 + A/C + 7digits' $ oldconfig.fmisc003
+          num_out = PADR('1-'+cus_c+[-]+DigNum7,24)
+        OTHERWISE
+          num_out = PADR('1-'+DigNum7,24)
+      ENDCASE
+    ENDIF
+  ELSE  &&& outside A/C
+    num_out = IIF(LEN(ALLT(num_in))<7,SPACE(24),PADR('1-'+ALLT(num_in),24))
+  ENDIF
+  RETURN(num_out)
+
+  PROCEDURE StylesDisC &&------------------------------
+  ? [ 1) THIS WRITING CONTAINS THE ENTIRE AGREEMENT BETWEEN BUYER & SELLER. THERE ARE NO WARRANTIES, EXPRESSED OR IMPLIED,           ]
+  ? [    OF MECHANTABILITY, FITNESS OR OTHERWISE WHICH EXTEND BEYOND THE DESCRIPTION ON THE FACE HEREOF.                             ]
+  ? [ 2) RE-STOCKING FEE 20% OR $25.00 (WHICHEVER IS GREATER) WILL BE CHARGED ON ALL RETURNS EXCEPT WARRANTY OR CORE RETURNS.        ]
+  ? [ 3) ALL MERCHADISE TO BE RETURNED MUST BE DONE WITHIN 30 DAYS.  NO RETURNS ACCEPTED AFTER 30 DAYS !!!!!!!!                      ]
+  ? [ 4) ON OH/EXCHANGE ITEMS CORE FEES ARE CHARGED UP FRONT & REFUNDED ONCE AN EXCEPTABLE CORE IS RECEIVED BY STYLES. CORES         ]
+  ? [    MUST BE RETURNED WITHIN 30 DAYS FROM RECEIPT DATE OTHERWISE CORE IS CHARGED.                                                ]
+  ? [ 5) FREIGHT DAMAGES: IF PARTS ARE DAMAGED IN TRANSIT BY SHIPPING CARRIER THE INITIAL CLAIM MUST BE STARTED ON THE RECEIVER'S END]
+
+  FUNCTION PadWONum0 &&-------------------------------------
+  PARA NumIn, zType
+  PRIV NumIn, zType, zVal, ChrOut
+  *** Numeric WO# in - 8 Char out with or without leading zeros
+  *** called by WO & Invoices
+  IF zType = [N]
+    ChrOut = STR(NumIn,8)
+    zVal = NumIn
+  ELSE
+    ChrOut = PADR(NumIn,8)
+    zVal = VAL(NumIn)
+  ENDIF
+  IF configav.wonumpad0.AND.zVal>0
+    ChrOut = STRTR(ChrOut,[ ],[0])
+  ENDIF
+  RETURN(ALLT(ChrOut))
+
+  PROCEDURE EatKeyStroke &&=======
+  CLEAR TYPEAHEAD
+  PRIV getfield
+  getfield=SPAC(1)
+DEFINE WINDOW EatIt FROM 32,1 TO 35,10 NONE
+ACTIVATE WINDOW EatIt NOSHOW
+KEYB "{ENTER}"
+@ 1,1 GET getfield
+READ
+RELE WIND EatIt
+RETURN
+
+  FUNCTION n_tail_num &&+++++++++++++++++++++++++++++++++++++++++
+  PARA mtin
+  PRIV mtin,mtout,ttt,m2
+  mtin = ALLT(STRT(mtin,[--],[-])) && remove double hyphens
+  mtin = PADR(ALLT(mtin),8)
+  DO CASE
+    CASE EMPT(mtin)
+      mtout = SPACE(8)
+    CASE INLI(configav.flavor,'AMERICAN  ',SPACE(10))
+      m2 = ' .,()/\:;*_%^&$#@!+=<>'
+      FOR ttt = 1 TO 22
+        mtin = STRT(mtin,SUBS(m2,ttt,1),'')
+      ENDFOR
+      IF 111=222  &&!ISAL(ALLT(mtin))
+        mtout = 'N'+ALLT(mtin)
+      ELSE
+        mtout = ALLT(mtin)
+      ENDIF
+    CASE EMPT(mtin).AND.![G-]$mtin.AND.INLI(configav.flavor,'BRITISH   ')
+      mtout = 'G-'+ALLT(mtin)
+    CASE EMPT(mtin).AND.![VH-]$mtin.AND.INLI(configav.flavor,'AUSTRALIAN')
+      mtout = 'VH-'+ALLT(mtin)
+    OTHERWISE
+      mtout = ALLT(mtin)
+  ENDCASE
+  RETURN(PADR(ALLT(mtout),8))
+
+  FUNCTION TailSquirt &&++++++++++++++++++++++++++++++++++
+  PARA zi
+  PRIV zi,zo
+  DO CASE
+    CASE EMPTY(zi).AND.INLI(configav.flavor,'AMERICAN  ',SPACE(10))
+      zo = 'N'
+    CASE EMPTY(zi).AND.INLI(configav.flavor,'BRITISH   ')
+      zo = 'G-'
+    CASE EMPTY(zi).AND.INLI(configav.flavor,'AUSTRALIAN')
+      zo = 'VH-'
+    OTHERWISE
+      zo = []
+  ENDCASE
+  RETURN(zo)
+
+PROCEDURE ino_hist &&----------------------
+PARA ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9,ph10
+PRIV ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9,ph10,m_alias
+*---- example
+&&    =ino_hist(inocart.loc,poline.sku,poline.mfg,[Used LOC],[ 78345],ThisForm._zusername,poline.po,ThisForm._zpkgsize,initloc,cartloc)
+* called to automatically make an history entry
+m_alias = ALIAS()
+IF !USED('inohist')
+  =open_dbf("inohist")
+ENDIF
+ph9 = IIF(TYPE('ph9')#"C",[],ph9)
+ph9 = IIF(TYPE('ph10')#"C",[],ph10)  &&  inohist.initloc is really the "Last" location
+SELE inohist
+APPE BLANK
+REPLACE loc WITH ph1, sku WITH ph2, mfg WITH ph3,;
+  details WITH ph4, job WITH ph5, userid WITH ph6,po WITH ph7,cartloc WITH ph10;
+  pkgsize WITH ph8, date WITH DATE(),time WITH TIME(),initloc WITH ph9 IN inohist
+LOCATE
+
+IF !EMPT(m_alias)
+  SELE &m_alias
+ENDIF
+RETURN
+
+PROCEDURE part_hist &&----------------------
+PARA ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9,ph10,ph11,ph12,ph13,ph14,ph15,ph16,ph17,ph18
+PRIV ph1,ph2,ph3,ph4,ph5,ph6,ph7,ph8,ph9,ph10,ph11,ph12,ph13,m_alias,ph15,ph16,ph17,ph18
+*---- example
+*=part_hist(qmat.mfg ,DATE() ,qty ,[REASON.....] ,cost ,time ,utnum;
+*  ,sku ,vendowned ,key1 ,kitjob ,caeqty ,cae ,dexpire ,po ,loc ,pkgsize ,username
+ph9 = IIF(TYPE('ph9') #"C",[],ph9)
+ph10= IIF(TYPE('ph10')#"C",[],ph10)
+ph11= IIF(TYPE('ph11')#"C",[],ph11)
+ph12= IIF(TYPE('ph17')#"N", 0,ph12)
+ph13= IIF(TYPE('ph13')#"C",[],ph13)
+ph14= IIF(TYPE('ph14')#"D",{},ph14)
+ph15= IIF(TYPE('ph15')#"C",[],ph15)
+ph16= IIF(TYPE('ph16')#"C",[],ph16)
+ph17= IIF(TYPE('ph17')#"C",[],ph17)
+ph18= IIF(TYPE('ph18')#"C",[],ph18)
+m_alias = ALIAS()
+IF FILE("C:\PyroPete.VLD")
+  *WAIT [PARTHIST] WIND TIME 2
+ENDIF
+IF !USED('parthist')
+  =open_dbf("parthist")
+ENDIF
+IF EMPT(ph18)
+  IF !USED('confloc')
+    jusen = ALLT(LEFT(SYS(0),14))
+  ELSE
+    jusen = ALLT(confloc.username)+[ ]+ALLT(LEFT(SYS(0),14))
+  ENDIF
+ELSE
+  jusen = ALLT(ph18)
+ENDIF
+SELE parthist
+APPE BLANK
+REPLACE partnum WITH ph1, date WITH ph2, qty WITH ph3,;
+  ref_misc WITH ph4, ucost WITH ph5, time WITH ph6,userid WITH jusen;
+  utnum WITH ph7, sku WITH ph8, vendowned WITH ph9,key1 WITH ph10,;
+  kitjob WITH ph11,caeqty WITH ph12,cae WITH ph13,dexpire WITH ph14,po WITH ph15,;
+  loc WITH ph16,pkgsize WITH ph17 IN parthist
+IF !EMPT(ph10).and.ph14#{} .and. ALLT(ph10)$ph4
+  REPL ref_misc WITH STRTR(ph4,ALLT(ph10),[VSL:]+DTOC(ph14)) IN parthist
+ENDIF
+IF FSIZE('mdr_code')>0.and.TYPE('_mdrcode')=[C].and.!EMPT(_mdrcode)
+  REPLACE parthist.mdr_code WITH _mdrcode IN parthist
+ENDIF
+IF [NSI]$UPPE(ph4).and.[INVT]$UPPE(ph4)
+  REPL lnsi WITH .T. IN parthist
+ENDIF
+IF !EMPT(m_alias)
+  SELE &m_alias
+ENDIF
+RETURN
+
+
+  PROCEDURE m_p_find &&+++++++++++++++++++++++++++++++++++
+  GO TOP
+  KEYB "{CTRL+F}"
+
+  FUNCTION d_t_m && +++++++++++++++++++++++++++++++++++++++++++++++
+  PARA ddate,dtime
+  PRIV ddate,dtime,d_cdow,d_date,d_time
+  ** returns port DDD DDMMMYY TT:TT  ex: (LPT1) MON 14-APR-93 07:30p
+  ** call with 0,1 or 2 params
+  DO CASE
+    CASE PARA()=1
+      dtime = TIME()
+    CASE PARA()=0
+      dtime = TIME()
+      ddate = DATE()
+  ENDCASE
+  d_cdow = UPPE(LEFT(CDOW(ddate),3))
+  d_date = dd_mmm_yyyy(ddate)  && other proc
+  d_time = ALLT(time_char(dtime))  && other proc
+  RETURN(ALLT(RIGHT(SET('PRINT',1),10))+[ ]+d_cdow+[ ]+d_date+[ ]+d_time)
+
+  PROCEDURE save_spot && ++++++++++++++++++++++
+  ** these 3 mvars already public from Avmmenu.prg
+  p__alias = ALIAS()
+  p__recno = RECNO()
+  p__order = ORDER()
+
+  PROCEDURE rest_spot && ++++++++++++++++++++++
+  ** these 3 mvars already public from Avmmenu.prg
+  SELE         (p__alias)
+  SET ORDER TO &p__order
+  GOTO          p__recno
+
+  PROCEDURE t_eq_alert &&+++++++++++++++++++++++lowlim_warn
+  * called from main menu and test equip sections to alert if any tequip od
+  zAlias = ALIAS()
+  IF configav.tequipwarn <=0
+    RETURN
+  ENDIF
+  PRIV xdays,hwmany,cdays
+  WAIT [CHECKING T/E SECTION FOR CAL DUE ITEMS ...] WIND NOWAIT
+  SET SAFETY OFF
+  *SET TALK ON
+  xdays = configav.tequipwarn
+  cdays = n_s(xdays)
+  SELECT model,serial,date_due,INTERVAL,STATUS,autowarn ;
+    FROM tequip_m;
+    WHERE date_due <= DATE()+xdays .AND. date_due #{} .AND. autowarn ;
+    .AND. [STANDARD]$UPPE(STATUS) ;
+    INTO CURSOR TequipQry ORDER BY date_due
+  *SET TALK OFF
+  SET SAFETY ON
+  hwmany = _TALLY
+  WAIT [.] WIND TIME .1
+  USE IN tequip_m && because sql opens it
+  IF hwmany < 1
+    RETURN
+  ENDIF
+  SELE TequipQry
+DEFINE WINDOW teq FROM 1,1 TO 35,100 SHAD CLOSE FLOAT COLOR SCHEME 23
+BROWSE FIELDS ;
+  yy=ALLT(model)+[  ]+ALLT(serial):36:H=[MODEL SER],;
+  xx = zAlphaDuetext(date_due,interval,status):32:H=[DUE...],;
+  INTERVAL  : 5:H=[CYCLE];
+  WIND teq NODELETE NOMENU NOAPPEND NOEDIT TIME 120;
+  TITLE [ *ADVISORY*   ITEM(S) DUE FOR CAL   (]+cdays+[ day warning)     ESC:Exit] FONT &_PBrowfont
+USE IN TequipQry
+RELE WIND teq
+RETURN
+
+  PROCEDURE lowlim_warn &&+++++++++++++++++++++++
+  * called from savmfman  && originally for schwans
+  PRIV hwmany
+  WAIT [CHECKING INVENTORY FOR LOW LIMIT ITEMS ...] WIND NOWAIT
+  SET SAFETY OFF
+  SELECT ppartnum,pdescrip,pqoh,plowlim  FROM avpartss;
+    WHERE (plowlim>0.AND.pqoh<=plowlim).OR.(lforcellim.AND.pqoh<=0.AND.plowlim=0).AND..NOT.DELETED();
+    INTO CURSOR plowlimQry ORDER BY ppartnum
+  SET SAFETY ON
+  hwmany = _TALLY
+  WAIT [.] WIND TIME .1
+  USE IN avpartss && because sql opens it
+  IF hwmany > 0
+    SELE plowlimQry
+DEFINE WINDOW teq FROM 1,1 TO 35,100 SHAD CLOSE FLOAT COLOR SCHEME 23
+BROWSE FIELDS ;
+  ppartnum:20:H=[PART #], pdescrip:25:H=[DESCRIPTION],xx=plowlim-pqoh:12:P=[999,999.99]:H=[NEED],;
+  plowlim : 12:P=[999,999.99]:H=[LOW LIMIT],pqoh:12:P=[999,999.99]:H=[QTY OH];
+  WIND teq NODELETE NOMENU NOAPPEND NOEDIT TIME 120;
+  TITLE [ *ADVISORY*   INVENTORY  ITEM(S)  at  or  below  Low  Limit     ESC:Exit] FONT &_PBrowfont
+ENDIF
+USE IN plowlimQry
+RELE WIND teq
+RETURN
+
+  FUNCTION mudf_teqal && ---------------------
+  PARA d1
+  PRIV d1,d2,d_out
+  d2 = d1-DATE()
+  DO CASE
+    CASE INTERVAL=0 .OR. (!EMPT(STATUS).AND.![STANDARD]$STATUS)
+      d_out = [NOT REQUIRED]
+    CASE d2 > 0
+      d_out = IIF(ABS(d2)=1,'Tomorrow!','in '+n_s(ABS(d2))+' days.')
+    CASE d2 < 0
+      d_out = IIF(ABS(d2)=1,'Yesterday!',n_s(ABS(d2))+' days ago!')
+    CASE d2 = 0
+      d_out = 'Today !'
+  ENDCASE
+  RETURN(PADR(d_out,14))
+
+  PROCEDURE manrev_alert &&+++++++++++++++++++++++
+  * called from main menu and manuals sections to alert if any items due
+  zAlias = ALIAS()
+  IF configav.manwarnday <=0
+    RETURN
+  ENDIF
+  PRIV xdays,hwmany,cdays
+  WAIT [CHECKING MANUALS SECTION FOR REVIEW ITEMS ...] WIND NOWAIT
+  SET SAFETY OFF
+  xdays = configav.manwarnday
+  cdays = n_s(xdays)
+  SELECT key,mannum,pnum,descrip,revudue,revudate,interval ;
+    FROM MANUALS;
+    WHERE revudue <= DATE()+xdays .AND. revudue #{} .AND. autowarn ;
+    INTO CURSOR ManWarnQry ORDER BY revudue
+  SET SAFETY ON
+  SELE ManWarnQry
+  hwmany = _TALLY
+  WAIT [.] WIND TIME .1
+  USE IN MANUALS && because sql opens it
+  IF hwmany < 1
+    RETURN
+  ENDIF
+  SELE ManWarnQry
+DEFINE WINDOW teq FROM 1,1 TO 35,100 SHAD CLOSE FLOAT COLOR SCHEME 23
+BROWSE FIELDS ;
+  key:6:H=[SPN#],mannum:12:H=[MANUAL #],pnum:22:H=[PART #],descrip:22:H=[DESCRIP],;
+  xx = zAlphaDuetext(revudue,interval,[STANDARD]):32:H=[DUE...],;
+  INTERVAL  : 7:H=[CYCLE];
+  WIND teq NODELETE NOMENU NOAPPEND NOEDIT TIME 120;
+  TITLE [ *ADVISORY*   MANUALS(S)  DUE FOR REVIEW    (]+cdays+[ day warning)     ESC:Exit] FONT &_PBrowfont
+USE IN ManWarnQry
+RELE WIND teq
+RETURN
+
+  FUNCTION mudf_manrev && ---------------------
+  * called for direct field ops
+  PARA d1,zi,zs
+  PRIV d1,d2,d_out
+  d2 = d1-DATE()
+  DO CASE
+    CASE zi=0 .OR. (!EMPT(zs).AND.![STANDARD]$zs)
+      d_out = [NOT REQUIRED]
+    CASE d2 > 0
+      d_out = IIF(ABS(d2)=1,'Tomorrow!','in '+n_s(ABS(d2))+' days.')
+    CASE d2 < 0
+      d_out = IIF(ABS(d2)=1,'Yesterday!',n_s(ABS(d2))+' days ago!')
+    CASE d2 = 0
+      d_out = 'Today !'
+  ENDCASE
+  RETURN(PADR(d_out,14))
+
+  PROCEDURE m_tog && +++++++++++++++++++++++++
+  * flips from module to module alt+t on key label in mmenu
+  PARA m_zz
+  PRIV m_zz,p1
+  p1=IIF(SUBS(configlc.fmisc003,6,1)=[Y],[],CHR(13))
+  DO CASE
+    CASE m_zz = 'AVCENTRY'
+      KEYB "X"+"E"+p1
+    CASE m_zz = 'AVIENTRY'
+      KEYB "X"+"C"+p1  &&CHR(13)
+    CASE m_zz = 'AVVENTRY'
+      KEYB "X"+"5"+p1 &&CHR(13)
+    CASE m_zz = 'AVYENTRY'
+      KEYB "X"+"B"+p1
+  ENDCASE
+
+  PROCEDURE m_tog2 && +++++++++++++++++++++++++
+  * flips from module to module alt+t on key label in mmenu
+  PARA m_zz
+  DO CASE
+    CASE m_zz = 'AVCENTRY'
+      KEYB "X"+"D"+CHR(13)
+    CASE m_zz = 'AVAENTRY'
+      KEYB "X"+"C"+CHR(13)
+  ENDCASE
+
+  FUNCTION pcdow  && ++++++++++++++++++++++++++++++++++++++++++++++++++
+  PARA din  && date in converted to "MON, 03-OCT-92"
+  PRIV din
+  RETURN (CDOW(din)+", "+SUBS(DTOS(din),7,2)+"-"+;
+    UPPE(SUBS(CMON(din),1,3))+"-"+SUBS(DTOS(din),1,4))
+
+  FUNCTION pdatcdow  && ++++++++++++++++++++++++++++++++++++++++++++++++++
+  PARA din  && date in converted to "MON, 03-OCT-92"
+  PRIV din
+  IF din={}
+    RETURN([])
+  ENDIF
+  RETURN(DateExpand(din)+[  ]+CDOW(din))  &&UPPE(LEFT(CDOW(ddate),3))   &&CDOW(din))
+
+  FUNCTION p3cdowdat  && ++++++++++++++++++++++++++++++++++++++++++++++++++
+  PARA din  && date in converted to "MON, 03-OCT-92"
+  PRIV din
+  IF din={}
+    RETURN([])
+  ENDIF
+  RETURN(UPPE(LEFT(CDOW(din),3))+[  ]+DateExpand(din))   &&CDOW(din))
+
+  FUNCTION comm_strip  && +++++++++++++++++++++++++++++++++++++++++++++
+  PARA fcomm
+  PRIV fcomm,zCrLf
+  zCrLf = CHR(13)+CHR(10)
+  *** converts all quad CrLf to triple CrLf
+  *!*	  DO WHILE .T.
+  *!*	    IF OCCURS( zCrLf+zCrLf+zCrLf+zCrLf , fcomm ) > 0
+  *!*	      fcomm = STRTRAN(fcomm, zCrLf+zCrLf+zCrLf+zCrLf , zCrLf+zCrLf+zCrLf )
+  *!*	    ELSE
+  *!*	      EXIT
+  *!*	    ENDIF
+  *!*	  ENDDO
+  fcomm = ALLT(fcomm)
+  DO WHILE LEFT(fcomm,2)==zCrLf && strips beginning crlf
+    fcomm=RIGHT(fcomm,LEN(fcomm)-2)
+  ENDDO
+  DO WHILE RIGHT(fcomm,4)==zCrLf+zCrLf && strips doubles at end
+    fcomm=LEFT(fcomm,LEN(fcomm)-2)
+  ENDDO
+  IF ALLT(fcomm)==zCrLf+zCrLf.OR.ALLT(fcomm)==zCrLf
+    fcomm=''
+  ENDIF
+  RETURN(fcomm)
+
+  PROCEDURE p_phraser &&++++++++++++++++++++++++++++++++++++++++++++++++
+  *// not used now, using separate phraser.prg
+  PARA zprog
+  PRIV zprog
+  RETURN
+  IF [AVMMENU]$zprog.OR.[P_PHRASER]$zprog
+    DO bellwarn
+    RETURN
+  ENDIF
+  WAIT zprog WIND TIME 1
+  PRIVATE mphkey,marea,m_phra_num,mpreadke,m9,xxx,prev_ent,vr,zprog
+  vr = VARREAD()
+  **WAIT zprog+VARREAD()+[ none ]+PROG()+[ 1 ]+PROG(1)+[ 2 ]+PROG(2)+[ 3 ]+PROG(3) WIND
+  CLEAR TYPEAHEAD
+  IF 1=2  &&WONTOP('PHRASEWIND').or.WEXIST('pete').or.;
+      (('MENU'$phkey.OR.'BROW'$phkey.OR.'DELE'$phkey).AND.(EMPT(VARREAD())))
+    **WAIT VARREAD()+[ phkey= ]+phkey
+    =pbell(120,2)
+    RETURN
+  ENDIF
+  marea = ALIAS()
+  IF USED('AVPHRASE')
+    SELE avphrase
+  ELSE
+    SELE 0
+    USE avphrase ORDER 1
+  ENDIF
+  COUNT TO m_phra_num
+  GO TOP
+  RELEASE ALL LIKE m_ph_list
+  DIME m_ph_list(m_phra_num+2,1)
+  mpreadke = 1
+  STORE [.Let me type it..    (nothing done)] TO m_ph_list(1)
+  STORE [.]+DTOC(DATE())+[     (TODAY's DATE - only date will be inserted)] TO m_ph_list(2)
+  FOR xxx = 3 TO m_phra_num+2
+    IF !EMPT(memphrase)
+      STORE PADR(phrase,75)+[] TO m_ph_list(xxx)
+    ELSE
+      STORE phrase TO m_ph_list(xxx)
+    ENDIF
+    IF !EOF()
+      SKIP
+    ENDIF
+  NEXT xxx
+DEFINE WINDOW phrase_win FROM 1,0 TO IIF(m_phra_num>22,23,m_phra_num+2),87 ;
+  NONE SHAD COLOR SCHEME 12 FONT 'Lucida Console' ,8
+PUSH KEY CLEAR
+ON KEY LABEL F10 KEYB ''   && +CHR(23)
+*prev_ent = ON('KEY','ENTER')
+ON KEY LABEL ENTER
+_DBLCLICK = .05
+ACTIVATE WINDOW phrase_win  &&082591
+DO popcolor
+CLEAR TYPEAHEAD
+@  0,0 MENU m_ph_list,m_phra_num+2,21 TITLE ;
+  ' SELECT A PHRASE then,  ENTER:Accept  -or-  ESC:NO phrase '
+DO WHILE .T.
+  READ MENU TO mpreadke
+  IF INLI(LAST(),13,23,27) && esc, enter,ctrl+W
+    EXIT
+  ELSE
+    LOOP
+  ENDIF
+ENDDO
+IF mpreadke > 1              && 0 = esc   1= let me
+  IF mpreadke = 2
+    KEYB ALLT(SUBS(m_ph_list(mpreadke),2,8))  && date
+  ELSE
+DEFINE WINDOW HiddenWind FROM -10,-30 TO -1,-20
+m9 = STRTR(ALLT(m_ph_list(mpreadke)),[],[])
+SELE avphrase
+LOCA FOR avphrase.phrase==PADR(m9,76)
+IF FOUND().AND.!EMPT(avphrase.memphrase)
+  REPLACE configlc.fdumbmem2 WITH avphrase.memphrase
+  IF 1=2 &&psysserial==[9999]
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-1',LEFT(UPPE(CDOW(DATE()-1)),3)+[ ]+dd_mmm_yyyy(DATE()-1,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-2',LEFT(UPPE(CDOW(DATE()-2)),3)+[ ]+dd_mmm_yyyy(DATE()-2,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-3',LEFT(UPPE(CDOW(DATE()-3)),3)+[ ]+dd_mmm_yyyy(DATE()-3,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-4',LEFT(UPPE(CDOW(DATE()-4)),3)+[ ]+dd_mmm_yyyy(DATE()-4,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-5',LEFT(UPPE(CDOW(DATE()-5)),3)+[ ]+dd_mmm_yyyy(DATE()-5,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-6',LEFT(UPPE(CDOW(DATE()-6)),3)+[ ]+dd_mmm_yyyy(DATE()-6,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~-7',LEFT(UPPE(CDOW(DATE()-7)),3)+[ ]+dd_mmm_yyyy(DATE()-7,1))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~~',pcdow(DATE()))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~',LEFT(UPPE(CDOW(DATE())),3)+[ ]+dd_mmm_yyyy(DATE(),1))
+  ELSE
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~~',pcdow(DATE()))
+    REPLACE configlc.fdumbmem2 WITH ;
+      STRTR(configlc.fdumbmem2,'~',DTOC(DATE()))
+  ENDIF
+  KEYB "{Ctrl+A}{Ctrl+C}{Ctrl+W}"
+  MODI MEMO configlc.fdumbmem2 WIND HiddenWind
+  KEYB "{Ctrl+V}"
+ELSE && not a block phrase
+  DO CASE
+    CASE '~~' $ m9
+      m9 = STRTR(m9,'~~',pcdow(DATE()))
+    CASE '~' $ m9
+      m9 = STRTR(m9,'~',DTOC(DATE()))
+  ENDCASE
+  mw__o = IIF(INLI(vr,'DISCR_TXT','ACTIO_TXT'),[ ],[]) && in wo text
+  KEYB mw__o+IIF(RIGHT(m9,1)='.',m9+[  ],m9+[ ])
+ENDIF
+ENDIF
+ENDIF
+RELEASE ALL LIKE m_ph_list
+SELE avphrase
+USE
+SELE &marea
+POP KEY
+ON KEY LABEL F10 DO p_phraser WITH PROG()
+*ON KEY LABEL ENTER &prev_ent
+_DBLCLICK = .15
+RELE WIND phrase_win   &&082591
+SELE &marea
+RETURN
+
+
+  FUNCTION pwait && ++++++++++++++++++++++++++
+  PARA pmess1,pmess2,NoSound
+  PRIV pmess1,pmess2,plen,mmore,loop_cnt,wtd,NoSound
+  CLEAR TYPE
+  pmess2 = IIF(PARA()=1,'press any key ...',pmess2)
+  pmess1 = ALLT(pmess1)
+  plen = MAX(LEN(pmess1),LEN(pmess2))
+  IF PARA()<3
+    =pbell( 533,2)
+  ENDIF
+  plen = IIF(plen>19,plen,19)
+DEFINE WINDOW pwait FROM 3,78-plen-5 TO 6,85 SHAD FLOAT COLOR SCHEME 5
+ACTIVATE WINDOW pwait
+mmore = .T.
+loop_cnt = 0
+DO WHILE mmore
+  @  0, 1 SAY pmess1
+  @  1, 0 SAY PADC(pmess2,WCOL())
+  wtd = 0
+  wtdfinish = SECO()+20
+  DO WHILE wtd = 0 .AND. SECO() < wtdfinish   && way out
+    wtd =INKEY(.1,'HM')
+    IF wtd#0
+      mmore = .F.
+      LOOP
+    ENDIF
+  ENDDO
+  IF wtd=0.AND.PARA()<3
+    =pbell( 533,2)
+  ENDIF
+  loop_cnt = loop_cnt + 1
+  IF loop_cnt >= 5
+    mmore = .F.
+  ENDIF
+ENDDO
+CLEAR TYPE
+RELE WIND pwait
+RETURN(wtd)
+
+  FUNCTION lockout_on  && ++++++++++++++++++++++++++++++++++++++
+  IF pnet_type = 'S'
+    RETURN
+  ENDIF
+  SET REPROCESS TO -1 && indefinite/no escape
+DEFINE WINDOW lockout FROM 2,15 TO 5,66 SHAD COLOR SCHEME 23  &&12
+ACTIVATE WINDOW lockout
+*=pbell(220,2)
+@ 0,0 SAY PADC([Updating files - you MUST WAIT until finished],WCOLS())
+@ 1,0 SAY PADC([Waiting too long ??? - check other users],WCOLS())
+CLEAR TYPE
+
+  FUNCTION lockout_of  && ++++++++++++++++++++++++++++++++++++++
+  CLEAR TYPE
+  SET REPROCESS TO AUTO
+  IF WEXIST('LOCKOUT')
+    RELE WIND lockout
+  ENDIF
+
+  FUNCTION get_one  && +++++++++++++++++++++++++++++++++++++++++++
+  ***usage get_one(screen row,text,initial value,type 'N'or'A',pict clause
+  ***TheDate=get_one(12,'Supply the date ',DATE(),'A',[  /  /  ])
+  PARA g_row,g_text,g_init,g_type,g_pict
+  PRIV g_row,g_text,g_init,g_type,g_pict,mtw,g_it,g_len,domore,zMinus,zclr
+  mtw    = LEN(g_text)+LEN(g_pict)+6
+  zMinus = IIF(g_row<0,.T.,.F.) &&---- negative row = secure input
+  g_row  = ABS(IIF(g_row=0,12,g_row))
+  g_len  = LEN(g_pict)
+  = pbell(1500,2,0,1)
+  domore=.T.
+DEFINE WINDOW g_one FROM g_row,MAX(2,38-(mtw/2)) TO g_row+2,38+(mtw/2) SHAD color W+/BG, W+/BG, GR/B, GR+/B, R+/B, W+/GR, GR+/RB, N+/N, GR+/B, R+/B 
+ACTIVATE WINDOW g_one
+SET INTE ON
+ON KEY LABEL LEFTMOUSE KEYB CHR(13)
+DO CASE
+  CASE zMinus.AND.configlc.fmonitype='C'
+    zclr = [W+/B,X/W]
+  CASE zMinus.AND.configlc.fmonitype#'C'
+    zclr = [W/N,X/W]
+  OTHERWISE
+    zclr = []
+ENDCASE
+DO WHILE domore
+  @ 0,2 SAY g_text GET g_init PICT g_pict COLOR &zclr
+  READ
+  IF g_type='A'.AND.g_pict=[  /  /  ].AND.!INLI(LAST(),13,27)
+    g_init = fdatecheck(g_init,1)
+    LOOP
+  ELSE
+    domore=.F.
+  ENDIF
+ENDDO
+ON KEY LABEL LEFTMOUSE
+RELE WIND g_one
+IF TYPE('g_init')='N'
+  RETURN(g_init)
+ELSE
+  RETURN(IIF(g_type='N',VAL(g_init),g_init))
+ENDIF
+
+  FUNCTION g_c && ++++++++++++++++++++++++++++++++++++++++++++
+  **called by g_c(land on, TOP TEXT, BOTT TEXT, 11choices...)
+  PARA n1,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14
+  PRIV n1,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,;
+    mwidtht,mwidthc,mconf,mresult,mparams,voff,zprevcolor
+  mparams = PARA()
+  zprevcolor=SET('COLOR')
+  **WAIT [zPrevColor  ]+zprevcolor WIND
+  IF mparams < 4
+    RETURN 0
+  ENDIF
+  p2 = IIF(EMPT(p2),'Your choice   ESC:Cancel',p2)
+  mconf   = SET('CONF')
+  SET CONF OFF
+  mresult = ABS(n1)
+  mwidthc = 0
+  FOR ttt = 4 TO mparams  &&&& note: mwidthc = LEN of widest "choice"
+    xxx = ALLT(STR(ttt-1))
+    mwidthc = IIF(LEN(P&xxx)>mwidthc,LEN(P&xxx),mwidthc)
+  ENDFOR
+  ** if p1 is smaller than largest text pad text to 2 wider than
+  p1 = IIF(mwidthc+5>=LEN(ALLT(p1)),PADC(ALLT(p1),mwidthc+4),ALLT(p1))
+  p2 = ALLT(p2)
+  _PubFormTop  = 0
+  _PubFormLeft = 0
+  mwidtht = 5 + MAX(LEN(p1),LEN(p2),mwidthc)
+  voff    = IIF(mparams>7,(mparams-8)/2,0) &&+ _PubFormTop
+  hoff    = (mwidtht/2)  &&+ _PubFormLeft
+  trm     = IIF(n1<0,'','NONE')
+DEFINE WINDOW gc FROM 6-voff+_PubFormTop,38-hoff+_PubFormLeft TO ;
+  11+mparams-voff-IIF(n1<0,0,1)+_PubFormTop,38+hoff+_PubFormLeft SHAD &trm color W+/BG, W+/BG, GR+/B, GR+/B, R+/B, W+/GR, GR+/RB, N+/N, GR+/B, R+/B &&COLOR SCHEME 12
+pete = .T.
+DO WHILE pete
+  ACTIVATE WINDOW gc
+  *SET COLOR TO GR+/B,W+/BG
+  @ 1,0 SAY PADC(p1,WCOLS())&& first line of text
+  @ 3+mparams,0 SAY PADC(p2,WCOLS()) && last line of text
+  *SET COLOR TO W+/B,W+/BG
+  **@ 3,(mwidtht/2)-(mwidthc/2)-2 TO 3+mparams-2,(mwidtht/2)+(mwidthc/2)+3 &&box
+  *=pbell(2000,2)
+  FOR ttt = 4 TO mparams
+    xxx = ALLT(STR(ttt-1))
+    @ ttt,(mwidtht/2)-(mwidthc/2) PROMPT [ ]+PADR(P&xxx,mwidthc+1)
+  ENDFOR
+  CLEAR TYPE
+  MENU TO mresult
+  IF (mresult=mparams-3.AND.P&xxx='?').AND.LASTKEY()#27
+  ELSE
+    pete = .F.
+  ENDIF
+  DEAC WIND gc
+ENDDO
+RELE WIND gc
+SET CONF &mconf
+**WAIT [Color b4 reset   ]+SET([COLOR]) WIND
+*SET COLOR TO &zprevcolor
+**WAIT [Color after reset   ]+SET([COLOR]) WIND
+RETURN mresult
+
+  FUNCTION n_s  &&++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  * numeric to fully trimmed string
+  PARA nin,ndec
+  PRIV nin,ndec
+  IF PARA()<2 .or. TYPE("ndec")#[N]
+    ndec = 0
+  ENDIF
+  IF TYPE("nin")#[N]
+    RETURN("0")
+  ELSE
+    RETURN(ALLT(STR(nin,10,ndec)))
+  ENDIF
+
+  PROCEDURE proc_next  && +++++++++++++++++++++++++++
+  IF ! EOF()
+    SKIP
+  ENDIF
+  IF EOF()
+    GO BOTTOM
+    DO bellok
+    WAIT 'NOW AT LAST RECORD' WIND TIME .5
+  ENDIF
+  CLEAR TYPE
+
+  PROCEDURE proc_prev  && +++++++++++++++++++++++++++
+  IF !BOF()
+    SKIP -1
+  ENDIF
+  IF BOF()
+    GO TOP
+    DO bellok
+    WAIT 'NOW AT FIRST RECORD' WIND TIME .5
+  ENDIF
+  CLEAR TYPE
+
+  FUNCTION time_char  && +++++++++++++++++++++++++++++++++++++++
+  PARA ttime
+  **** usage time_char(TIME())
+  PRIVATE ttime
+  IF VAL(LEFT(ttime,2))=12
+    tr = STR(VAL(LEFT(ttime,2)),2)+SUBST(ttime,3,3)+'p'
+  ENDIF
+  IF VAL(LEFT(ttime,2))>12
+    tr = STR(VAL(LEFT(ttime,2))-12,2)+SUBST(ttime,3,3)+'p'
+  ENDIF
+  IF VAL(LEFT(ttime,2))<12
+    tr = STR(VAL(LEFT(ttime,2)),2)+SUBST(ttime,3,3)+'a'
+  ENDIF
+  RETURN ' '+tr
+
+
+  FUNCTION open_dbf  && +++++++++++++++++++++++++++++++++++++++++
+  PARA WhichDbf,zBuff
+  PRIV WhichDbf,zBuff,zError
+  zBuff=IIF(PARA()=1,0,zBuff)
+  * trys to open dbf if no errors in next avail area
+  * sets all_dbf_ok to N if unsucessful
+  * opens with a tag order if second param
+  SET MULTILOCKS ON
+  IF USED(WhichDbf)
+    *WAIT NOWAIT WhichDbf+[ Already used in ]+STR(SELE('batchprt'),3) WIND
+    SELE &WhichDbf
+    IF zBuff>0 .and. CURSORGETPROP("Buffering") # zBuff
+      =CURSORSETPROP("Buffering",zBuff)
+    ENDIF
+    RETURN(.T.)
+  ELSE
+    zError = ON('ERROR')
+    ON ERROR perrnum = ERROR()
+    SELE 0
+    perrnum = 0
+    USE (WhichDbf)
+    ON ERROR &zError
+    IF perrnum = 1705 .OR. perrnum = 108
+      USE               && close dbf in this area
+      RETURN(.F.)
+    ELSE
+      IF zBuff>0
+        =CURSORSETPROP("Buffering",zBuff)
+      ENDIF
+      RETURN(.T.)
+    ENDIF
+  ENDIF
+
+  PROCEDURE Close_Dbf  && +++++++++++++++++++++++++++++++++++++++++++++
+  PARA WhichDbf
+  LOCAL jAlias
+  jAlias = ALIAS()
+  * closes a dbf by testing for its use
+  IF USED(WhichDbf)
+    SELE (WhichDbf)
+    USE
+    IF !EMPT(jAlias) .and. ALLT(UPPE(jAlias)) # ALLT(UPPE(WhichDbf))
+      SELE &jAlias
+    ENDIF
+  ENDIF
+
+  PROCEDURE zwindon &&++++++++++++++++++++++++++++++++++++++++++++++++
+  * from lwwprocs
+  PARA wtext,zTop,zLeft
+  PRIV wlen,woff,wtext,zTop,zLeft,ztoff,zloff
+  IF PARA()>0
+    wlen = LEN(ALLT(wtext))+10
+    woff = IIF(wlen>12,CEILING(wlen/2)-4,1)
+  ELSE
+    woff = 1
+  ENDIF
+  zTop =IIF(TYPE("zTop") =[L],0,zTop)
+  zLeft=IIF(TYPE("zLeft")=[L],0,zLeft)
+  zTop =IIF(PARA()>1,zTop,0)
+  zLeft=IIF(PARA()>2,zLeft,0)
+  ztoff=FLOOR(zTop/14)
+  zloff=FLOOR(zLeft/6)
+DEFINE WINDOW zmesswind FROM 9+ztoff,35+zloff-woff TO 14+ztoff,57+zloff+woff DOUB SHAD color W+/BG, W+/BG, GR+/B, GR+/B, R+/B, W+/GR, GR+/RB, N+/N, GR+/B, R+/B &&COLOR SCHEME 12
+ACTIVATE WINDOW zmesswind
+@ 1,0 SAY PADC(IIF(EMPT(wtext),'WORKING',wtext),WCOLS())  &&[WORKING]
+@ 2,0 SAY PADC('Please wait ...',WCOLS())
+RELEASE p__time
+PUBLIC p__time
+p__time = SECO()
+RETURN
+
+  PROCEDURE zwindoff && ++++++++++++++++++++++++++++++++++++++++++++++++++
+  PARA wdel
+  PRIV wdel
+  IF !WEXIST('zmesswind')
+    RETURN
+  ENDIF
+  IF PARA() > 0 .and. TYPE("p__time") # [U] .and. TYPE("wdel") = "N"
+    DO WHILE SECO() < p__time + wdel
+    ENDDO
+  ENDIF
+  IF WEXIST('zmesswind')
+    RELE WIND zmesswind
+  ENDIF
+  RELEASE p__time
+  RETURN
+
+  PROCEDURE wwindon &&++++++++++++++++++++++++++++++++++++++++++++++++
+  LPARAM ztext
+  DO zwindon WITH ztext
+  RETURN
+
+  PROCEDURE wwindoff && ++++++++++++++++++++++++++++++++++++++++++++++++++
+  PARA wdel
+  PRIV wdel
+  DO zwindoff WITH wdel
+  RETURN
+
+  PROCEDURE PASSWORD && ++++++++++++++++++++++++++
+  PRIV SkipPassWord,altpass,mmastr_pw,ypass
+  SkipPassWord = .T.
+  IF psysserial==[1037].AND._ColgBlock   &&[1037] &&---colgan
+    IF !INLI(mmmpass,'A','5','Q','D','B','1','F')
+      WAIT [NO Access] WIND TIME .30
+      OkToPass='N'
+      RETURN
+    ENDIF
+  ELSE
+    IF SkipPassWord.AND.!EMPTY(configlc.fpassword).AND.(mmmpass$configlc.fpassstr.OR.mmmpass='O')
+      SkipPassWord = .F.
+    ENDIF
+    IF SkipPassWord.AND.!EMPTY(configlc.fsecon_pw).AND.(mmmpass$configlc.fsecon_ps.OR.mmmpass='O')
+      SkipPassWord = .F.
+    ENDIF
+  ENDIF
+  IF SkipPassWord
+    OkToPass = 'Y'
+    RETURN
+  ENDIF
+  phkey = [PASSWORD]
+  altpass = ALLTR(STR(DOW(DATE()) * ASC(LEFT(CMONTH(DATE()),1)) *;
+    VAL(SUBS(DTOC(DATE(),1),3,2))*VAL(SUBS(DTOC(DATE(),1),5,2))*;
+    VAL(SUBS(DTOC(DATE(),1),7,2))))
+DEFINE WINDOW passwind FROM 6,10 TO 15,70 NONE SHAD COLOR SCHEME 12
+ACTIVATE WINDOW passwind
+@ 1,0 SAY PADC('The Aviation Manager needs your password',60)
+@ 2,0 SAY PADC('to proceed...'+IIF(psysserial=='9999',altpass,''),60)
+@ 8,0 SAY PADC('Type in the password and press <enter>',60)
+@ 4,22 TO 6,35
+SET INTE ON
+SET BELL TO 1020,2
+?? CHR(7)
+mmastr_pw = IIF(EMPT(configav.fmastr_pw),'Þ73e83eg',configav.fmastr_pw)
+ypass = SPACE(10)
+AltPass2=IIF(psysserial==[9999],[P1900C],[Þ73e83eg]) &&[1037] &&---colgan
+DO passcolor
+CLEAR TYPE
+@ 5,24 GET ypass
+READ
+*  must be with CR, can't be configure and secondary
+gopassw = .F.
+IF LAST()==13.AND.ypass#SPACE(10).AND.;
+    (ypass==configlc.fpassword.OR.;
+    ypass==configlc.fsecon_pw.OR.;
+    ypass==mmastr_pw.OR.;
+    ALLT(ypass)==ALLT(altpass).OR.;
+    ALLT(ypass)==ALLT(AltPass2).OR.;
+    ypass='pyro'+RIGHT(DTOC(DATE(),1),6).OR.;
+    ALLT(ypass)=n_s(MONTH(DATE())*DAY(DATE())*VAL(psysserial)))
+  gopassw = .T.
+ENDIF
+** next eval if secondary allowed at all
+** don't let into config if secondary
+** overides above eval  && 'O'=config
+gopassw = IIF(ypass==configlc.fsecon_pw.AND.mmmpass='O',.F.,gopassw)
+gopassw = IIF(ypass==configlc.fsecon_pw.AND.;
+  !mmmpass$configlc.fsecon_ps,.F.,gopassw)
+IF gopassw
+  DO bellok
+  OkToPass = 'Y'
+ELSE
+  OkToPass = 'N'
+  SET CURSOR OFF
+  DO bellwarn
+  IF psysserial==[9999]  &&[1037] &&---colgan
+    @ 5,24 SAY ' Limited  '
+  ELSE
+    @ 5,24 SAY ' Sorry... '
+  ENDIF
+  WAIT '' TIME 1
+  SET CURSOR ON
+ENDIF
+phkey = [MMENU]
+CLEAR TYPE
+RELE WIND passwind
+RETURN
+
+  PROCEDURE demotest && ++++++++++++++++++++++++++
+  PARA DemRecs
+  PRIV DemRecs,demorec
+  demostop = 'N'
+  IF pdemo = 'N' .AND. ! LiveDemo
+    RETURN
+  ELSE
+    demorec = RECNO()
+    COUNT TO abcdefg
+    GOTO demorec
+    demostop = 'N'
+    IF abcdefg >= DemRecs
+      demostop = 'Y'
+      DO bellwarn
+DEFINE WINDOW nomore FROM 5,9 TO 13,71 SHAD COLOR SCHEME 12
+ACTIVATE WINDOW nomore
+@ 1,0 SAY PADC([DEMO VERSION, unable to accept more than ]+;
+  n_s(DemRecs)+[ records],60)
+@ 3,0 SAY PADC([Try deleting some records first],58)
+@ 5,0 SAY PADC([press any key to continue...],58)
+CLEAR TYPE
+SET CURSOR OFF
+WAIT ''
+SET CURSOR ON
+RELE WIND nomore
+CLEAR TYPE
+RETURN
+ENDIF
+ENDIF
+RETURN
+
+  PROCEDURE delayit && ++++++++++++++++++++++++++
+  PARA delaywhat
+  PRIVATE delaywhat
+  delaywhat = SECO()+delaywhat
+  DO WHILE SECO()<delaywhat
+  ENDDO
+  RELE delaywhat
+
+  PROCEDURE trapper && ++++++++++++++++++++++++++
+  DO WHILE .T.
+    READ MENU TO mpreadke
+    IF READ()=15  && enter  &&READ() >= 0 .AND. READ() <=3 .OR. READ() =12
+      EXIT
+    ELSE
+      LOOP
+    ENDIF
+  ENDDO
+  RETURN
+
+  FUNCTION dd_mmm_yyyy && ++++++++++++++++++++++++++
+  PARA datein,zcent   && incoming date to ex. 10-OCT-92
+  PRIV datein,zcent   && zcent = 1 = yyyy
+  zcent=IIF(PARA()<2,0,zcent)
+  IF EMPT(datein)
+    dateout = IIF(zcent=1,SPAC(11),SPAC(9))
+  ELSE
+    d1=DTOS(datein)
+    dateout = RIGHT(d1,2)+'-'+LEFT(UPPE(CMON(datein)),3)+'-'+SUBS(d1,1,4)
+  ENDIF
+  RETURN dateout
+
+  FUNCTION convdate2 && ++++++++++++++++++++++++++
+  PARAMETER datein   && incoming date to ex. 10-OCT-92
+  PRIVATE datein
+  IF EMPT(datein)
+    dateout = SPACE(9)
+  ELSE
+    d1=DTOC(datein,1)
+    dateout = LEFT(UPPE(CMON(datein)),3)+'-'+RIGHT(d1,2)+'-'+SUBST(d1,3,2)
+  ENDIF
+  RETURN dateout
+
+  FUNCTION foneconv && ++++++++++++++++++++++++++
+  PARAMETER afonenum   && incoming #
+  PRIVATE afonenum,cfonenum,mmchar,WHERE
+  cfonenum = ''        && buildup new fone string
+  FOR which = 1 TO LEN(afonenum)
+    mmchar = SUBSTR(afonenum,which,1)
+    WHERE = AT(mmchar,' 1234567890-ABCDEFGHIJKLMNOPRSTUVWXY')
+    IF WHERE = 0      && can't find char default to incoming #
+      cfonenum = afonenum
+      mcphone = afonenum
+      DO bellwarn
+      EXIT
+    ENDIF
+    cfonenum = cfonenum +;
+      SUBSTR(' 1234567890-222333444555666777888999',WHERE,1)
+  NEXT which
+  IF configav.fconvfone = 'N'
+    cfonenum = afonenum
+  ENDIF
+  RETURN(cfonenum)
+
+  PROCEDURE brmouseon && ++++++++++++++++++++++++++++++++++++++++++++++
+  ON KEY LABEL rightmouse DO browmoused
+
+  PROCEDURE brmouseoff && ++++++++++++++++++++++++++++++++++++++++++++++
+  ON KEY LABEL rightmouse
+
+  PROCEDURE browmoused && ++++++++++++++++++++++++++++++++++++++++++++++
+  KEYB CHR(23)
+
+  PROCEDURE whatsup && ++++++++++++++++++++++++++
+  PARAMETER wutext
+  DO messcolor
+  @ 24,65 SAY wutext
+
+  FUNCTION doll_char &&++++++++++++++++++++++++++++++++
+  * returns unpadded dollar string
+  * usage =doll_char(n,['C'])
+  * if ,'C' included, - adds space at right of + numbers fo collumn align
+  PARA din,m_t
+  PRIV din,din2,m_t
+  *din2 = ALLT(STRTR(TRANS(din,'@$ZB( 9,999,999,999.99'),' ',''))
+  din2 = ALLT(SET([CURR],1))+ALLT(STRTR(TRAN(din,'@B( 999,999,999,999.99'),' ',''))
+  IF PARA()=2  && column
+    din2 = IIF(din>.01,din2+' ',IIF(din=0,ALLT(SET([CURR],1))+'0.00 ',din2))
+  ENDIF
+  RETURN(din2)
+
+  FUNCTION fdatecheck && +++++++++++++++++++++++++++++++++++++++++++++
+  *  usage =fdatecheck(xxxx,n) xxx = date  n=1/0=range check
+  *  if checkit = 1, tests config +- days
+  *  always checks expiredate
+  PARA i_date,checkit,FORCE
+  PRIV i_date,o_date,HasExpiredat,rk,checkit,FORCE,cy1,cm1,cd1
+  **_ClipText = [  I_date ]+DTOC(i_date)+[  ]
+  checkit = IIF(PARA()<2,1,checkit)
+  FORCE   = IIF(PARA()<3,'',UPPE(FORCE))
+  o_date  = i_date
+  rk      = READKEY()
+  IF 111=222   &&i_date#{}.AND.YEAR(i_date)< 1933
+    * 18Feb1999  new VPM5.1 version has its own set cent
+    * which will take precedence over this
+    cy1=SUBS(DTOS(i_date),1,4)
+    cm1=SUBS(DTOS(i_date),5,2)
+    cd1=SUBS(DTOS(i_date),7,2)
+    IF [DMY]$SET([DATE])  &&--- BRITISH or Australian
+      o_date = CTOD(cd1+'/'+cm1+'/'+STR(VAL(cy1)+100,4))
+    ELSE
+      o_date = CTOD(cm1+'/'+cd1+'/'+STR(VAL(cy1)+100,4))
+    ENDIF
+  ENDIF
+  DO CASE
+    CASE INLI(rk,6,262) .OR. FORCE='PU'     && pgup 6
+      STORE DATE() TO o_date
+    CASE INLI(rk,7,263) .OR. FORCE='PD'     && pgdwn 7
+      STORE {} TO o_date
+    CASE INLI(rk,34,290) .OR. FORCE='CU'    && ctl pgup
+      i_date = IIF(i_date={},DATE()-1,i_date)
+      STORE i_date+1 TO o_date
+    CASE INLI(rk,35,291) .OR. FORCE='CD'    && ctrl pgdwn
+      i_date = IIF(i_date={},DATE()+1,i_date)
+      STORE i_date-1 TO o_date
+  ENDCASE
+  **_ClipText = _ClipText+[RK ]+ALLT(STR(rk))+[   O_date1  ]+DTOC(o_date)+[  ]
+  zexpiredat = IIF(TYPE("pexpiredat")=[D],pexpiredat,{})
+  HasExpiredat = IIF((o_date>zexpiredat).AND.(!EMPT(zexpiredat)),'Y','N')
+  IF INLIST(rk,5,15,261,271).AND.checkit=1 .AND. !BETW(o_date,DATE()-configav.fdateback,;
+      DATE()+configav.fdateforw).AND.HasExpiredat='N'.AND.!EMPT(o_date).and.configav.ldatwarn
+    DO bellwarn
+    CLEAR TYPE
+    mds = o_date-DATE()
+    zSign=IIF(mds>=0,[+],[-])
+    IF ABS(mds) >365
+      zPeriod=ALLT(TRAN(ABS(ROUND(mds/365,1)),'9,999.9'))+[ years]
+    ELSE
+      zPeriod=ALLT(TRAN(ABS(mds),'999'))+[ days]
+    ENDIF
+    =pwait('Please check the date '+DTOC(o_date)+'   ('+zSign+zPeriod+') ')
+    CLEAR TYPE
+  ENDIF
+  IF HasExpiredat = 'Y'.and. ALLT(zzAppStatus) # [REGISTERED]
+    CLEAR TYPE
+    =pwait([Can't accept ]+DTOC(o_date);
+      +[ -  past Evaluation expiration date: ]+DTOC(zexpiredat))
+    CLEAR TYPE
+    o_date = zexpiredat  && pub var program expiration date
+  ENDIF
+  *SET CENT &_Cent
+  *WAIT DTOC(o_date) WIND TIME 1.3
+  **_ClipText = _ClipText+[  O_date2  ]+DTOC(o_date)+[  ]
+  RETURN(o_date)
+
+  FUNCTION pbell && ++++++++++++++++++++++++++++++
+  PARA pfreq,pdura,pdelay,preps
+  PRIV pfreq,pdura,pdelay,preps,pdstop
+  IF configlc.fwarndura+configlc.fokdura > 0 &&--- stop if both at zero
+    IF PARA() < 4
+      pdelay = 0
+      preps = 1
+    ENDIF
+    SET BELL TO pfreq,pdura
+    FOR ttt = 1 TO preps
+      pdstop = SECO()+pdelay
+      ?? CHR(7)
+      DO WHILE SECO()<pdstop
+      ENDDO
+    ENDFOR
+  ENDIF
+
+  PROCEDURE bellwarn && ++++++++++++++++++++++++++
+  IF configlc.fwarndura > 0
+    SET BELL TO 300,configlc.fwarndura
+    ?? CHR(7)
+  ELSE
+    =delayit(.1)
+  ENDIF
+  CLEAR TYPE
+
+  PROCEDURE bellok && ++++++++++++++++++++++++++
+  IF configlc.fokdura > 0
+    SET BELL TO 800,configlc.fokdura
+    ?? CHR(7)
+  ELSE
+    =delayit(.1)
+  ENDIF
+  CLEAR TYPE
+
+  PROCEDURE saveynu && ++++++++++++++++++++++++++
+  DO bellwarn
+  ACTIVATE WINDOW msgwind
+  DO mswincolor
+  CLEAR
+  psaveynu = 4
+  CLEAR TYPE
+  DO WHILE psaveynu = 4
+    @ 0,01 PROMPT ' \<Save changes '
+    @ 0,19 PROMPT ' \<Cancel changes '
+    @ 0,39 PROMPT ' \<Re-do changes '
+    @ 0,58 PROMPT ' \<Undecided '
+    MENU TO psaveynu
+    IF LAST()=27
+      psaveynu = 3
+    ENDIF
+  ENDDO
+
+  DO scrcolor
+  DEAC WIND msgwind
+  RETURN
+
+  PROCEDURE scrtitle && ++++++++++++++++++++++++++
+  PARA stitle
+  DO messcolor
+  @ 0,0 SAY ' '+DTOC(DATE())+[ ]+LEFT(CDOW(DATE()),3)+PADC(stitle,54)+SPACE(13)
+  DO scrcolor
+
+  PROCEDURE getmessage &&----------------------------------------
+  PARA gettext
+  @ 22,0 SAY PADC(IIF(EMPT(gettext),' ',[  ]+ALLT(gettext)+[  ]),80)
+
+  PROCEDURE scrmess && ++++++++++++++++++++++++++
+  PARA smess1,smess2  && mess1 59  mess2 17
+  DO messcolor
+  @ 24,0  SAY PADR([ ]+ALLTRIM(smess1),60)
+  @ 24,50 SAY PADL(ALLTRIM(smess2)+[ ],30)
+  DO scrcolor
+
+  PROCEDURE scrcount && ++++++++++++++++++++++++++
+  DO messcolor
+  *@ 00,70 SAY PADL(ALLT(STR(RECCO()))+[ ],10)
+  @ 00,70 SAY PADL(ALLT(TRANS(RECCO(),'9,999,999'))+[ ],10)
+  *@ 00,50 SAY PADL(ALLT(STR(RECNO()))+[/]+ALLT(STR(RECCO()))+[ ],30)
+  DO scrcolor
+
+  PROCEDURE passcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO W+/B,X/W
+  ELSE
+    SET COLOR TO W/N,X/W
+  ENDIF
+
+  PROCEDURE avsetcolor && ++++++++++++++++++++++++++
+  DO CASE
+    CASE configlc.fmonitype = 'C'
+      SET COLOR SET TO avp
+    CASE configlc.fmonitype = 'L'
+      SET COLOR SET TO lcd
+    CASE configlc.fmonitype = 'M'
+      SET COLOR SET TO monochrome
+  ENDCASE
+
+  PROCEDURE mm1color && main menu 1++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO W+/N,W+/B
+  ELSE
+    SET COLOR TO W+/N,X/W
+  ENDIF
+
+  PROCEDURE mm2color && main menu2++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    IF 'CHARLIE TANGO, INC.'$UPPE(pcompname)
+      SET COLOR TO W/N,W+/*R+
+    ELSE
+      SET COLOR TO W/N,W+/BG
+    ENDIF
+  ELSE
+    SET COLOR TO W/N,N/W+  &&W+/N,N/W+
+  ENDIF
+
+  PROCEDURE popcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO W+/B,W+/GR
+  ELSE
+    SET COLOR TO N/W,W/N
+  ENDIF
+
+  PROCEDURE scrollcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO GR+/R
+  ELSE
+    SET COLOR TO W/N,W+/N
+  ENDIF
+
+  PROCEDURE alertcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO GR+/B  && BG
+  ELSE
+    SET COLOR TO N/W,W/N  &&W+/N,N/W+
+  ENDIF
+
+  PROCEDURE carotcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO B/BG
+  ELSE
+    SET COLOR TO W+*/N
+  ENDIF
+
+  PROCEDURE blinkcolor && ++++++++++++++++++++++++++
+  SET BLINK ON
+  IF configlc.fmonitype='C'
+    SET COLOR TO W+*/BG
+  ELSE
+    SET COLOR TO W+*/N
+  ENDIF
+
+  PROCEDURE labcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO W+/BG
+  ELSE
+    SET COLOR TO W/N
+  ENDIF
+
+  PROCEDURE messcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO N/W,N/W
+  ELSE
+    SET COLOR TO N/W+,N/W+
+  ENDIF
+
+  PROCEDURE scrcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO N/BG,W+/B
+    *SET COLOR TO &&  resets color back to user wind of AVP  && N/BG,W+/B
+  ELSE
+    SET COLOR TO W+/N,N/W+
+  ENDIF
+
+  PROCEDURE windcolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO W+/B,W+/BG
+  ELSE
+    SET COLOR TO N/W,W/N  &&W+/N,N/W+
+  ENDIF
+
+  PROCEDURE mswincolor && ++++++++++++++++++++++++++
+  IF configlc.fmonitype='C'
+    SET COLOR TO GR+/R,W+/N
+  ELSE
+    SET COLOR TO N/W+,W+/N  &&W+/N,N/W+
+  ENDIF
+  CLEAR
+
+  PROCEDURE escrout && ++++++++++++++++++++++++++
+  qit = 'Y'
+  SET ESCAPE OFF
+  RETURN
+
+  PROCEDURE myhelp  && +++++++++++++++++++++++++++
+  ON KEY LABEL f1 KEYB CHR(23)
+  m_area = ALIAS()
+  mins = INSMODE()
+  = INSMODE(.T.)
+  SELE _avhelp
+  SET EXACT ON
+  IF LEFT(phkey,1) = '*'
+    SEEK UPPER(phkey)
+  ELSE
+    SEEK VARREAD()
+    IF ! FOUND()
+      SEEK UPPER(phkey)
+    ENDIF
+  ENDIF
+
+DEFINE WINDOW pete FROM 2,6 TO 22,73 SYSTEM CLOSE FLOAT SHAD COLOR SCHEME 23 ;
+  TITLE 'HELP for:  '+;
+  ALLT(helptitle)+PADL([F1:Exit],43-LEN(ALLT(helptitle)));
+  FOOTER 'PgUp   PgDn   '+;
+  IIF(configav.fmodihelp = 'Y','','    (help locked)')
+UNLOCK IN _avhelp
+IF configav.fmodihelp = 'Y'
+  IF RLOCK('_avhelp')
+    MODI MEMO helpdetail WIND pete
+    UNLOCK IN _avhelp
+  ELSE
+    ACTIVATE WINDOW pete
+    @ 3,2 SAY PADC([HELP FOR ]+ALLTRIM(helptitle)+[ CURRENTLY LOCKED],58)
+    @ 8,2 SAY PADC([PRESS ANY KEY],58)
+    WAIT ''
+  ENDIF
+ELSE
+  MODI MEMO helpdetail WIND pete NOEDIT
+ENDIF
+UNLOCK IN _avhelp
+RELE WIND pete
+IF m_area # ''
+  SELE ALLT(UPPE(m_area))
+ENDIF
+ON KEY LABEL f1 DO myhelp
+SET EXACT OFF
+= INSMODE(mins)
+KEYB CHR(13) && cr
+CLEAR TYPE
+
+  FUNCTION _pol &&  +++++++++++++++++++++++++++++
+  * was ponline  changed 03/11/94
+  * returns mprnchoice = 1 if on line
+  PRIV offline,mpc,mconf,mincolor
+  offline = .T.
+  temphkey = phkey
+  mincolor = SET('COLOR')
+  phkey = [*PONLINE]
+  mconf = SET('CONFIRM')
+  SET CONFIRM OFF
+
+  STORE 1 TO mprnchoice
+  DO WHILE offline
+    IF mprnchoice=2
+      EXIT
+    ENDIF
+    IF SYS(13) = 'OFFLINE'
+      DO bellok
+      DO bellwarn
+DEFINE WINDOW ponline FROM 9,12 TO 15,68 SHAD COLO SCHE 7
+ACTIVATE WINDOW ponline
+DO mswincolor
+CLEAR
+@ 1,2 PROMPT PADC(' Printer not online - load, select & press <ENTER> ',51)
+@ 2,2 SAY    PADC('or',50)
+@ 3,2 PROMPT PADC(' ................ CANCEL PRINTING ................ ',51)
+STORE mprnchoice TO mpc
+CLEAR TYPEAHEAD
+MENU TO mpc
+IF mpc = 2.OR.LAST()=27 && esc && cancel
+  mprnchoice = 2
+  RELE WIND ponline
+  EXIT  &&RETURN
+ENDIF
+ELSE
+  offline = .F.
+  mprnchoice = 1
+ENDIF
+ENDDO
+IF WEXIST('ponline')
+  RELE WIND ponline
+ENDIF
+phkey = temphkey
+SET CONFIRM &mconf
+SET COLOR TO &mincolor
+*DO scrcolor
+RETURN(mprnchoice)
+
+  PROCEDURE _pp  &&+++++++++++++++++++++++++++++++++++++
+  *** PortPicker
+  PARA xtra_txt
+  PRIV xtra_txt,xx_1,ttt,do_it,d_1,gc_str,d_p,p_p,vv_1,s_1,mincolor,p_1,n_1
+  malias = ALIAS()
+  mincolor = SET('COLOR')
+  SELE configlc
+  STORE 1 TO xx_1,vv_1,return_str
+  vv_1  = 1
+  do_it = .F.
+  xtra_txt = IIF(PARA()=0,'',xtra_txt)
+  xtra_txt = IIF(EMPT(ALLT(xtra_txt)),'',ALLT(UPPE(xtra_txt))+[ ])
+  gc_str = ",[Send ]+xtra_txt+[to which  printer / port ?],[],"
+  cur_port = SET ('PRINT',1)
+  b_str = 'LPT1LPT2LPT3COM1COM2COM3'
+  DIME p_p(6)
+  DIME d_p(6)
+  DIME n_p(6)
+  STORE '' TO p_p,d_p
+  FOR ttt = 1 TO 6
+    d_1 = SUBS(configlc.fmisc004,((ttt-1)* 6)+ 1, 6)  && which driver
+    p_1 = SUBS(configlc.fmisc004,((ttt-1)* 4)+40, 4)  && which port
+    n_1 = SUBS(configlc.fmisc004,((ttt-1)*16)+70,16)  && which name
+    SET PRINT TO &p_1
+    s_1 = '  '+PROPER(SYS(13))
+    IF !EMPT(ALLT(d_1)).AND.!EMPT(ALLT(p_1)).AND.!EMPT(ALLT(n_1))
+      gc_str = gc_str + "["+n_s(ttt)+[  ]+n_1+[  ]+p_1+[  ]+d_1 + s_1 + "],"
+      d_p(xx_1) = d_1
+      p_p(xx_1) = p_1
+      IF ALLT(p_1) = ALLT(cur_port)  && sets land on item current port
+        vv_1 = xx_1
+      ENDIF
+      xx_1 = xx_1 + 1
+    ENDIF
+  ENDFOR
+  **gc_str = n_s(vv_1*-1)+gc_str+"[CANCEL]"
+  gc_str = n_s(xx_1)+gc_str+"["+n_s(xx_1)+"  CANCEL]"
+  **gc_str = n_s(3)+gc_str+n_s(3)+"[ CANCEL]"
+  IF xx_1 > 2
+    wtc = g_c(&gc_str) &&---------------
+    IF LAST()=27 .OR. wtc>xx_1-1
+      return_str = 0
+    ELSE
+      REPLACE configlc.fprintport WITH p_p(wtc)
+      REPLACE configlc.fpdriver   WITH d_p(wtc)
+      return_str = 1
+      SET PRINTER TO (configlc.fprintport)
+      DO prn_setup
+    ENDIF
+  ELSE
+    SET PRINT TO &cur_port
+  ENDIF
+  SELE &malias
+  SET COLOR TO &mincolor
+  RETURN(return_str)  && 0 if cancelled
+
+  PROCEDURE prn_setup && ++++++++++++++++++++++++++++++++++++++
+  IF USED('pdrivers')
+    SELE pdrivers
+  ELSE
+    SELE 0
+    USE pdrivers
+  ENDIF
+  PUBLIC pdstring,pinitstr,p_dw1,p_pitch_,hp_yn
+  LOCATE FOR prntype = configlc.fpdriver
+  pinitstr = ''
+  IF configlc.fpdriver # 'HP-PCL'
+    hp_yn = .F.
+    pdstring = LEFT(underon,12)+LEFT(underoff,12)+LEFT(emphon,12)+;
+      LEFT(emphoff,12)+LEFT(enhon,12)+LEFT(enhoff,12)+;
+      LEFT(italicon,12)+LEFT(italicoff,12)+LEFT(dwon,12)+;
+      LEFT(dwoff,12)+LEFT(enabpaper,12)+LEFT(disapaper,12)+;
+      LEFT(ten,12)+LEFT(twelve,12)+LEFT(seventeen,12)+LEFT(ff,12)+;
+      LEFT(six,12)+LEFT(eight,12)+LEFT(lpi_set,12)+LEFT(dw1,12)+;
+      LEFT(vlf,12)+LEFT(lf,12)
+    FOR ww = 1 TO 34 STEP 3
+      m1  = SUBS(initstr,ww,3)
+      IF !EMPTY(m1)
+        pinitstr = pinitstr+CHR(VAL(m1))
+      ENDIF
+    ENDFOR
+    pinitstr = ALLT(pinitstr)
+    p_dw1 = ploader(229)
+  ELSE
+    hp_yn = .T.
+    PUBLIC p_l_6, p_l_8, p_c_0, p_c_2, p_c_7, p_e_0, p_e_1, p_u_0, p_u_1
+    PUBLIC pinitstr
+    STORE CHR(27)+ALLT(six)       TO p_l_6
+    STORE CHR(27)+ALLT(eight)     TO p_l_8
+    STORE CHR(27)+ALLT(ten)       TO p_c_0
+    STORE CHR(27)+ALLT(twelve)    TO p_c_2
+    STORE CHR(27)+ALLT(seventeen) TO p_c_7
+    STORE CHR(27)+ALLT(enhoff)    TO p_e_0
+    STORE CHR(27)+ALLT(enhon)     TO p_e_1
+    STORE CHR(27)+ALLT(underoff)  TO p_u_0
+    STORE CHR(27)+ALLT(underon)   TO p_u_1
+    pinitstr = CHR(27)+ALLT(initstr)
+  ENDIF
+  SELE pdrivers
+  USE  && pdrivers
+  RETURN
+
+  FUNCTION printset &&  +++++++++++++++++++++++++
+  PARAMETER p_set
+  PRIV p_set
+  *IF FILE('wo.tst')
+  *  RETURN([])
+  *ENDIF
+  IF TYPE('p_set') = 'N'
+    p_set = ALLT(STR(p_set))
+  ENDIF
+  PRIV L,C,E,u,lpi,cpi,emp,und,lpi_set,suf
+  p_pitch_ = IIF(SUBS(p_set,2,1)='0',10,IIF(SUBS(p_set,2,1)='2',12,17)) && publ
+  IF configlc.fpdriver # 'HP-PCL'
+    lpi = ploader(IIF(SUBS(p_set,1,1)='6',193,205))
+    cpi = ploader(IIF(SUBS(p_set,2,1)='0',145,IIF(SUBS(p_set,2,1)='2',157,169)))
+    emp = ploader(IIF(SUBS(p_set,3,1)='1', 49, 61))
+    und = ploader(IIF(SUBS(p_set,4,1)='1',  1, 13))
+    lpi_set   = ploader(217)
+    * leave pstext because public mvar for older versions
+    pstext = lpi+lpi_set+emp+cpi+und
+  ELSE && hp
+    lpi = IIF(SUBS(p_set,1,1)='6',p_l_6,p_l_8)
+    cpi = IIF(SUBS(p_set,2,1)='0',p_c_0,IIF(SUBS(p_set,2,1)='2',p_c_2,p_c_7))
+    emp = IIF(SUBS(p_set,3,1)='1',p_e_1,p_e_0)
+    und = IIF(SUBS(p_set,4,1)='1',p_u_1,p_u_0)
+    suf = IIF(p_pitch_=10,CHR(27)+'&k12H',IIF(p_pitch_=12,CHR(27)+'&k10H',''))
+    pstext = lpi+emp+cpi+und+suf
+  ENDIF
+  RETURN(pstext)
+
+  FUNCTION pdw1  &&-------------
+  PRIV x1
+  IF configlc.fpdriver # 'HP-PCL'
+    x1 = p_dw1
+  ELSE
+    DO CASE
+      CASE p_pitch_ = 10
+        x1 = CHR(27)+"&k24H"  && HMI
+      CASE p_pitch_ = 12
+        x1 = CHR(27)+"&k20H"
+      CASE p_pitch_ = 17
+        x1 = CHR(27)+"&k14H"
+    ENDCASE
+  ENDIF
+  RETURN(x1)
+
+  FUNCTION pdw0  &&-------------
+  PRIV x1
+  IF configlc.fpdriver # 'HP-PCL'
+    x1 = ''
+  ELSE
+    DO CASE
+      CASE p_pitch_ = 10
+        x1 = CHR(27)+"&k12H"
+      CASE p_pitch_ = 12
+        x1 = CHR(27)+"&k10H"
+      CASE p_pitch_ = 17
+        x1 = '' &&CHR(27)+"&k07H"
+    ENDCASE
+  ENDIF
+  RETURN(x1)
+
+  FUNCTION ploader && -----------
+  ** called from printset & other modules
+  ** usage = xxxxx = ploader(nnn)
+  ** returns rts 4 char string starting at mstart for 12 char
+  PARA mstart
+  PRIVATE m1,m2,m3,m4,mstart
+  STORE '' TO m1,m2,m3,m4,rts
+  m1  = SUBS(pdstring,mstart+0,3)
+  IF m1#'   '
+    rts = CHR(VAL(m1))
+  ENDIF
+  m2  = SUBS(pdstring,mstart+3,3)
+  IF !EMPTY(m2)
+    rts = rts+CHR(VAL(m2))
+  ENDIF
+  m3  = SUBS(pdstring,mstart+6,3)
+  IF !EMPTY(m3)
+    rts = rts+CHR(VAL(m3))
+  ENDIF
+  m4  = SUBS(pdstring,mstart+9,3)
+  IF !EMPTY(m4)
+    rts = rts+CHR(VAL(m4))
+  ENDIF
+  RETURN(rts)
+
+  PROCEDURE prn_init  &&+++++++++++++++++++++
+  IF hp_yn
+    ??? CHR(27)+'E'
+  ENDIF
+  ??? pinitstr
+
+  PROCEDURE dbsels && +++++++++++++++++++++++++++++++++
+  SELE 22
+  USE configav
+  SELE 23
+  USE configlc
+  SELE 24
+  perrnum = 0
+  USE _avhelp
+  IF perrnum = 1707
+    USE _avhelp
+    INDEX ON helpkey TAG _avhelp
+  ENDIF
+  IF FILE('_avhelp.cdx')
+    SET ORDER TO 1
+  ENDIF
+  RETURN
+
+  PROCEDURE stru_pop &&+++++++++++++++++++++++++++++++
+  **** called by F12, available only if on an NHA/CTI machine
+  *  set up in Main Men when on my machine
+DEFI POPUP peteski PROMPT STRU TITLE DBF()
+ON SELE POPUP peteski DEAC POPUP peteski
+ACTI POPUP peteski
+
+
+  PROCEDURE MoreInfo  &&---------------------------------------------
+  IF !FILE([INFO.SPN])
+    =pwait([Info file not found])
+  ELSE
+DEFINE WINDOW miw FROM 0,0 TO 24,79 COLO SCHE 23 SYSTEM ;
+  TITLE [ ADDITIONAl  SPN  INFORMATION   use PgUp/PgDwn keys to see all   ESC:Exit ]
+MODI FILE INFO.SPN WIND miw NOEDIT
+RELE WIND miv
+=EatKeyStroke()
+ENDIF
+RETURN
+
+
+  PROCEDURE floppy_inv &&-------------------------------
+  * called from inventory listing report - prnplist
+  IF !FILE('avilstmp.dbf')
+    =pwait([Can't ouput ILS - temp. file missing])
+    RETURN
+  ENDIF
+  SELE configav
+  IF EMPTY(configav.f_ils_id)
+    =pwait([Can't output ILS without an ID - setup in Config\Company])
+    SELE avpartss
+    RETURN
+  ENDIF
+  SELE avpartss
+  do_it = .T.
+  DO WHILE do_it
+    wtf = g_c(-4,'Use which drive to output the "'+ALLT(mprplf)+[" listing],'',;
+      'A: floppy drive',;
+      'B: floppy drive',;
+      'CANCEL floppy output','?')
+    IF wtf = 3 .OR.LAST()=27
+      do_it = .F.
+      LOOP
+    ENDIF
+    whchdr = IIF(wtf=1,'A:','B:')
+    wtp = g_c(-5,[Use which type of pricing for the floppy listing ?],'',;
+      'ZERO all prices - Blank',;
+      'LIST price from inventory',;
+      'COST price from inventory',;
+      'CANCEL floppy output','?')
+    IF wtp = 4 .OR.LAST()=27
+      do_it = .F.
+      LOOP
+    ENDIF
+    whchprice = IIF(wtp=1,'ZERO',IIF(wtp=2,'LIST','COST'))
+    wtd = g_c(-3,[Do you have a BLANK FORMATTED floppy in your drive ]+whchdr+' ?',;
+      'prices set to '+whchprice,;
+      'YES send to floppy drive '+whchdr,;
+      'CANCEL floppy output','?')
+    IF wtd = 2 .OR.LAST()=27
+      do_it = .F.
+      LOOP
+    ENDIF
+    EXIT
+  ENDDO
+  IF !do_it
+    RETURN
+  ENDIF
+  DO wwindon WITH 'BUILDING DISKETTE...'
+  SELE configav
+  m_ils_id = LEFT(ALLT(configav.f_ils_id),4)
+  SET SAFETY OFF
+  SELE 0
+  USE avilstmp EXCL
+  ZAP
+  SET SAFETY ON
+  SELE avpartss
+  GO TOP
+  mrc = 0
+  msk = 0
+  **IF !'ILS'$mprplf.or.(EMPT(pilstranc).or.EMPT(ppartnum).or.!EMPT(pilscond).or.pqoh=0.or.EMPT(pdescrip))
+  SCAN
+    IF !'ILS'$mprplf.OR.EMPT(ppartnum).OR.EMPT(pilscond).OR.pqoh=0.OR.EMPT(pdescrip)
+      msk = msk + 1
+      LOOP
+    ENDIF
+    SELE avilstmp
+    APPEND BLANK
+    mrc = mrc + 1
+    REPLA I01 WITH m_ils_id
+    REPLA I02 WITH 'A'          &&avpartss.pilstranc
+    REPLA I03 WITH avpartss.ppartnum
+    REPLA I04 WITH avpartss.pxref
+    REPLA I05 WITH avpartss.pilscond
+    REPLA I06 WITH PADL(n_s(avpartss.pqoh),5,'0')
+    REPLA I07 WITH avpartss.pdescrip
+    REPLA I08 WITH SPACE(5)     &&avpartss
+    REPLA I09 WITH SPACE(5)     &&avpartss.
+    REPLA I10 WITH SPACE(9)     &&avpartss.
+    REPLA I11 WITH '000000000'  &&avpartss.
+    REPLA I12 WITH 'Y'          &&avpartss.
+    DO CASE
+      CASE wtp=2
+        REPLA I13 WITH PADL(ALLT(STR(avpartss.plist,9,2)),9)
+      CASE wtp=3
+        REPLA I13 WITH PADL(ALLT(STR(avpartss.pcost,9,2)),9)
+      OTHERWISE
+        REPLA I13 WITH SPACE(9)
+    ENDCASE
+    REPLA I14 WITH LEFT(avpartss.punit,2)
+    SELE avpartss
+  ENDSCAN
+
+  SELE avilstmp
+  IF wtf = 1    && a: drive
+    COPY TO A:ils.dat SDF
+    w_d = 'A:'
+  ELSE
+    COPY TO B:ils.dat SDF
+    w_d = 'B:'
+  ENDIF
+  DO wwindoff
+  IF msk> 1
+    =g_c(-2,[ADVISOY - Items *NOT* copied to ]+w_d+[ due to incomplete data!],;
+      [you can correct this and try again],;
+      'OK - '+n_s(mrc)+[ items copied, ]+n_s(msk)+[ items skipped],;
+      '?')
+  ELSE
+    =pwait(n_s(mrc)+[ items copied to ]+w_d)
+  ENDIF
+  SELE avilstmp
+  USE
+  RETURN
+
+  PROCEDURE _picktag &&-------------------------------------------------
+  * Used....: to print inventory pick tags (originally 4 COLGAN AIR)
+  PARA SentFrom,PrnQty,zpart,zser,zcat,zdes,zven,zq1,zq2,zdat,zpo,zcon,zshlf,zloc,zlst,zxref,zrcvd
+  PRIV SentFrom,PrnQty,zpart,zser,zcat,zdes,zven,zq1,zq2,zdat,zpo,zcon,zshlf,zloc,zlst,zxref,zrcvd
+  PRIV hmany,mcount,woffset,qit,mblank,wtdp1
+  **WAIT Sentfrom+[ ]+n_s(prnqty) WIND
+  * zq1=Previously Received
+  * zq2=Total Ordered
+  wtdp1=1
+  SET COLOR TO N/W,W+/N
+  woffset = 25
+  mblank = 1
+  qit = 'N'
+  STORE 0 TO mcount,hmany
+DEFINE WINDOW ptwind FROM 5+woffset,13+woffset*2 TO 16+woffset,63+woffset*2 SHAD
+ACTIVATE WINDOW ptwind
+SET INTE OFF
+StopTags = .F.
+IF SentFrom=[INVENTORY]
+  STORE 0 TO zq1,zq2
+  wtdp1=g_c(4,'Print which type of Inventory Pick Tag(s) ?','',;
+    '1 SINGLE with data filled-in for P# '+ALLT(zpart),;
+    '2 BLANKS for handwritten tags',;
+    'CANCEL pick tags',[?])
+  IF wtdp1=3.OR.LAST()=27
+    StopTags = .T.
+  ELSE
+    SET COLOR TO N/W,W+/N
+    *SET ESCAPE ON
+    SET EXACT OFF
+    *ON ESCAPE qit = 'Y'
+
+    @ 1,0 SAY PADC('Prints up to 100  INVENTORY PICK TAGS',WCOLS())
+    FOR ttt = 1 TO woffset
+      MOVE WIND ptwind BY -1,-2
+      mcatch=SECO()+.015
+      DO WHILE SECO()<mcatch
+      ENDDO
+    ENDFOR
+    SET COLOR TO N/W,W+/N
+    SET INTE OFF
+    @ 3,0 SAY PADC([ ],WCOLS())
+    @ 4,0 SAY PADC([ ],WCOLS())
+    @ 5,0 SAY PADC([ ],WCOLS())
+    @ 6,0 SAY PADC([ ],WCOLS())
+    @ 7,0 SAY PADC([Qty  0 = quit   Press <ESC> to stop printing'],WCOLS())
+    @ 8,0 SAY PADC([ ],WCOLS())
+    SET INTE ON
+    @ 4,13 SAY [Print how many ? ] GET hmany PICT '999' RANGE 0,100
+    READ
+  ENDIF
+ELSE
+  hmany = PrnQty
+  IF SentFrom = [PO]
+    @ 1,0 SAY PADC('Printing  INVENTORY PICK TAGS',WCOLS())
+    FOR ttt = 1 TO woffset
+      MOVE WIND ptwind BY -1,-2
+      mcatch=SECO()+.015
+      DO WHILE SECO()<mcatch
+      ENDDO
+    ENDFOR
+  ENDIF
+ENDIF
+
+IF 2=_pol()
+  DO pt_end
+  RETURN
+ENDIF
+
+IF hmany < 1 .OR. StopTags
+  DO pt_end
+  RETURN
+ENDIF
+
+??? CHR(27)+"@"  && reset
+??? printset('8200')
+??? CHR(27)+CHR(120)+CHR(0) && draft for epson
+??? CHR(27)+CHR(67)+CHR(0)+CHR(4)  && 4 inch length
+SET MARGIN TO 1
+SET PRINT ON
+SET CONSOLE OFF
+DO WHILE mcount < hmany   &&.and. qit # 'Y'
+  IF _pol() = 2
+    qit = 'Y'
+    EXIT
+  ELSE
+    SET PRINTER ON
+    SET CONSOLE OFF
+  ENDIF
+  mcount = mcount + 1
+  ??? printset('6710')
+  ? pdw1()+PADC(' PICK TAG  -  '+ALLT(pcompname)+[ ],48,[*])
+  ??? printset('6700')
+  ?
+  IF wtdp1=2 &&-------- blank handwritten
+    ? pdw1()+'PART #                                      '
+    ?
+    ? pdw1()+'DESCRIP                                     '
+    ?
+    ? pdw1()+[SER#                 CAT        VEND        ]
+    ?
+    ? pdw1()+'#     of      ORDERED   PO#                 '
+    ?
+    ? pdw1()+'DATE                                        '
+    ?
+    ? pdw1()+[COND.         LIST $          RCV'D by      ]
+    ?
+    ? pdw1()+'XREF#                 EXPIRES ON            '
+    ?
+    ? pdw1()+'SHELF-BIN LOCATION                          '
+    ?
+    ? pdw1()+'REMARKS                                     '
+  ELSE
+    ? pdw1()+'PART#: '+PADR(ALLT(zpart),37,[ ])+pdw0() && 35
+    ?
+    ? pdw1()+'DESCRIP: '+PADR(ALLT(zdes),35,[ ])+pdw0() && 34
+    ?
+    ? pdw1()+[SER#: ]+PADR(ALLT(zser),38,[ ])+pdw0()
+    ?
+    ? pdw1()+[CAT: ]+PADR(ALLT(zcat),4,[ ])+[  VEND: ]+;
+      PADR(ALLT(zven),8,[ ])+;
+      [  PO#: ]+;
+      IIF(EMPT(zpo),[             ],PADR(ALLT(zpo),14,[ ]))+pdw0()
+    ?
+    mzq1 = IIF(zq2>0,zq1+mcount,0) && if zq2(ordered)
+    ? pdw1()+' '+PADR(ALLT(TRAN(mzq1,[@Z 99999])),5,[ ])+[ of ]+;
+      PADR(ALLT(TRAN(zq2,[@Z 99999])),5,[ ])+[ ORDERED ]+;
+      [   DATE: ]+IIF(zdat={},[        ],DTOC(zdat))+[   ]+;
+      +pdw0()
+    ?
+    ? pdw1()+[COND: ]+zcon+[   LIST: ]+;
+      PADR(ALLT(TRAN(zlst,[@$Z 9,999,999.99])),10,[ ])+;
+      [  RCV'D: ]+DTOC(zrcvd)+pdw0()
+    ?
+    ? pdw1()+'XREF#: '+LEFT(zxref,19)+'  EXPR. ON: '+;
+      IIF(zshlf={},[        ],DTOC(zshlf))+pdw0()
+    ?
+    ? pdw1()+'SHELF-BIN: '+PADR(ALLT(zloc),33,[ ])+pdw0()
+    ?
+    ? pdw1()+'REMARKS:                                    '+pdw0()
+  ENDIF
+  ??? CHR(12)
+  IF SentFrom = [PO]
+    SET CONSOLE ON
+    SET PRINT OFF
+    @ 4,0 SAY PADC(STR((mcount/hmany)*100,4,1)+[ % complete],WCOLS())
+    mcatch = SECONDS()+.20
+    DO WHILE SECOND()<mcatch
+    ENDDO
+    SET CONSOLE OFF
+    SET PRINT ON
+    IF mpchoice = 2
+      EXIT
+    ENDIF
+  ENDIF
+ENDDO
+=delayit(.3)
+??? CHR(27)+"@"  && reset
+??? printset('6000')
+SET MARGIN TO 0
+SET CONSOLE ON
+SET PRINT OFF
+DO pt_end
+RETURN
+
+  PROCEDURE pt_end && ----------------------------
+  DEAC WIND ptwind
+  RELE WIND ptwind
+  SET ESCAPE OFF
+  *ON ESCAPE
+  RETURN
+
+  PROCEDURE eject_pt && ------------------------------------------
+  wtdej=g_c(5,'EJECT HOW MANY EMPTY PICK TAGS ?',;
+    'Makes it easier to tear off tags',;
+    '1 empty tag',;
+    '2 empty tags',;
+    '3 empty tags',;
+    'CANCEL - eject no empty tags',[?])
+  DO CASE
+    CASE wtdej = 1.AND.LAST()#27
+      ??? CHR(27)+CHR(67)+CHR(0)+CHR(4)  && 4 inch length
+      ??? CHR(12)
+    CASE wtdej = 2.AND.LAST()#27
+      ??? CHR(27)+CHR(67)+CHR(0)+CHR(4)  && 4 inch length
+      ??? CHR(12)
+      ??? CHR(12)
+    CASE wtdej = 3.AND.LAST()#27
+      ??? CHR(27)+CHR(67)+CHR(0)+CHR(4)  && 4 inch length
+      ??? CHR(12)
+      ??? CHR(12)
+      ??? CHR(12)
+  ENDCASE
+  RETURN
+
+  PROCEDURE ConvertEmplPhones  &&-----------------------------
+  USE avempl_m AGAIN IN 0 ALIAS zempls
+  USE custcont IN 0
+  SELE zempls
+  SCAN
+    IF !EMPT(cphone)
+      SELECT custcont
+      APPE BLANK
+      REPLA cmnem WITH zempls.cmnem, descrip WITH zempls.p1_label, num WITH ALLT(zempls.cphone)
+      SELE zempls
+    ENDIF
+    IF !EMPT(cphone2)
+      SELECT custcont
+      APPE BLANK
+      REPLA cmnem WITH zempls.cmnem, descrip WITH zempls.p2_label, num WITH ALLT(zempls.cphone2)
+      SELE zempls
+    ENDIF
+    IF !EMPT(cphone3)
+      SELECT custcont
+      APPE BLANK
+      REPLA cmnem WITH zempls.cmnem, descrip WITH zempls.p3_label, num WITH ALLT(zempls.cphone3)
+      SELE zempls
+    ENDIF
+    IF !EMPT(cphone4)
+      SELECT custcont
+      APPE BLANK
+      REPLA cmnem WITH zempls.cmnem, descrip WITH zempls.p4_label, num WITH ALLT(zempls.cphone4)
+      SELE zempls
+    ENDIF
+    IF !EMPT(cphone5)
+      SELECT custcont
+      APPE BLANK
+      REPLA cmnem WITH zempls.cmnem, descrip WITH zempls.p5_label, num WITH ALLT(zempls.cphone5)
+      SELE zempls
+    ENDIF
+  ENDSCAN
+  USE IN zempls
+  USE IN custcont
+
+  FUNCTION GetTextAge &&-----------------------------
+  PARA d1,d2
+  PRIV d1,d2,zdays,ztext
+  IF TYPE("d1")#[D]
+    RETURN
+  ENDIF
+  IF PARAM() > 1 .and. TYPE("d2")#[D]
+    RETURN
+  ENDIF
+  IF d1={}
+    RETURN([])
+  ENDIF
+  IF PARAM() > 1
+    IF d2 = {}
+      d2 = DATE()
+    ELSE
+      d2 = d2
+    ENDIF
+  ELSE
+    d2 = DATE()
+  ENDIF
+  zdays = ABS(d2-d1)
+  DO CASE
+    CASE zdays = 0
+      ztext = [Today]
+    CASE BETW(zdays,0,90)
+      ztext = ALLT(TRAN(zdays,[99,999]))+[d]
+    CASE BETW(zdays,91,365)
+      ztext = ALLT(TRAN(ROUN(zdays/30.416,1),[999.9]))+[m]
+    CASE zdays > 365
+      ztext = ALLT(TRAN(ROUN(zdays/365,1),[999.9]))+[y]
+  ENDCASE
+  DO CASE
+    CASE d1 # d2 .and. d1 > d2
+      ztext = [+]+ALLT(ztext)
+    CASE d1 # d2 .and. d1 < d2
+      ztext = [-]+ALLT(ztext)
+  ENDCASE
+  RETURN(ztext)
+
+  FUNCTION OLDGetTextAge &&-------#############################################################################-
+  PARA d1
+  PRIV d1,zdays,ztext
+  IF d1={}
+    RETURN([])
+  ENDIF
+  zdays = ABS(DATE()-d1)
+  DO CASE
+    CASE zdays = 0
+      ztext = [Today]
+    CASE zdays < 366
+      ztext = ALLT(TRAN(zdays,[99,999]))+[d]
+    CASE zdays > 365
+      ztext = ALLT(TRAN(zdays/365,[999.9]))+[y]
+  ENDCASE
+  IF d1#DATE() .and. d1>DATE()
+    ztext = [+]+ALLT(ztext)
+  ENDIF
+  RETURN(ztext)
+
+  FUNCTION GetACTCode &&--------------------------
+  PARA zs,zn
+  PRIV zs,zn,zc,zl,zp,zz,zo,z1,z2,z3,z4,z5,ml,s1,s2,s3,s4,s5,n1,n2,n3,n4,n5
+  zs = ALLT(zs)
+  zn = ALLT(zn)
+  IF LEN(zs)#4 .OR. LEN(zn)<3
+    RETURN([None...])
+  ENDIF
+  STORE 0 TO zc,zl,zp,zz
+  FOR ttt = 1 TO LEN(zn)
+    ml = SUBS(zn,ttt,1)
+    zc = zc + IIF(BETW(ASC(ml),65,90),1,0)
+    zl = zl + IIF(BETW(ASC(ml),97,122),1,0)
+    zp = zp + IIF(BETW(ASC(ml),33,47),1,0)
+    zp = zp + IIF(BETW(ASC(ml),58,64),1,0)
+    zp = zp + IIF(BETW(ASC(ml),91,96),1,0)
+    zz = zz + 93-ASC(ml)
+  ENDFOR
+  zo = ALLT(STR(zz))
+  STORE [] TO z1,z2,z3,z4,z5
+  FOR ttt = 1 TO LEN(zo)
+    ml = SUBS(zo,ttt,1)
+    z1 = IIF(ttt=1,ml,z1)
+    z2 = IIF(ttt=2,ml,z2)
+    z3 = IIF(ttt=3,ml,z3)
+    z4 = IIF(ttt=4,ml,z4)
+    z5 = IIF(ttt=5,ml,z5)
+  ENDFOR
+  s1=VAL(SUBS(zs,1,1))
+  s2=VAL(SUBS(zs,2,1))
+  s3=VAL(SUBS(zs,3,1))
+  s4=VAL(SUBS(zs,4,1))
+  s5=CEIL((s3+s4)+IIF(MOD(s3,2)=0,1,2)+IIF(MOD(s4,2)=0,2,5))
+  n1=65+CEILING(LEN(zn)/5)
+  n2=80-OCCU(CHR(32),zn)
+  n3=70+CEIL(zc/2)
+  n4=86-CEIL(zl/2)
+  n5=68+zp
+  f1=CHR(n1)+CHR(89-(s4+4))+CHR(n2)+CHR(s3+3+65)+CHR(n3);
+    +CHR(89-(s2+2))+CHR(n4)+CHR(s1+1+65)+CHR(n5)+CHR(65+(s5))+;
+    z1+z2+z3+z4+z5
+  RETURN(ALLT(f1))
+
+  FUNCTION GetQActCode &&+++++++++++++++++++++++++
+  ** for quotes reg
+  PARA zs,zn
+  PRIV zs,zn,zc,zl,zp,zz,zo,z1,z2,z3,z4,z5,ml,s1,s2,s3,s4,s5,n1,n2,n3,n4,n5
+  zs = ALLT(zs)
+  zn = ALLT(zn)
+  IF LEN(zs)#4 .OR. LEN(zn)<3
+    RETURN([None...])
+  ENDIF
+  STORE 0 TO zc,zl,zp,zz
+  FOR ttt = 1 TO LEN(zn)
+    ml = SUBS(zn,ttt,1)
+    zc = zc + IIF(BETW(ASC(ml),65,90),1,0)
+    zl = zl + IIF(BETW(ASC(ml),97,122),1,0)
+    zp = zp + IIF(BETW(ASC(ml),33,47),1,0)
+    zp = zp + IIF(BETW(ASC(ml),58,64),1,0)
+    zp = zp + IIF(BETW(ASC(ml),91,96),1,0)
+    zz = zz + 93-ASC(ml)
+  ENDFOR
+  zo = ALLT(STR(zz))
+  STORE [] TO z1,z2,z3,z4,z5
+  FOR ttt = 1 TO LEN(zo)
+    ml = SUBS(zo,ttt,1)
+    z1 = IIF(ttt=1,ml,z1)
+    z2 = IIF(ttt=2,ml,z2)
+    z3 = IIF(ttt=3,ml,z3)
+    z4 = IIF(ttt=4,ml,z4)
+    z5 = IIF(ttt=5,ml,z5)
+  ENDFOR
+  s1=VAL(SUBS(zs,4,1))
+  s2=VAL(SUBS(zs,3,1))
+  s3=VAL(SUBS(zs,2,1))
+  s4=VAL(SUBS(zs,1,1))
+  s5=CEIL((s3+s4)+IIF(MOD(s3,2)=0,1,2)+IIF(MOD(s4,2)=0,2,5))
+  n1=66+CEILING(LEN(zn)/5)
+  n2=79-OCCU(CHR(32),zn)
+  n3=71+CEIL(zc/2)
+  n4=85-CEIL(zl/2)
+  n5=68+zp
+  f1=z3+CHR(n5)+CHR(89-(s4+4))+CHR(n4)+CHR(s3+3+65)+CHR(n3);
+    +CHR(89-(s2+2))+CHR(n2)+CHR(s1+1+65)+CHR(n1)+CHR(65+(s5))+;
+    z1+z5+[Q]+z4+z2
+  RETURN(ALLT(f1))
+
+  PROCEDURE MakeFieldList &&--------------------------------------------------------------------
+  *// used only for dev to create string of fields for the current table
+  _ClipText = []
+  FOR jjj = 1 TO FCOUNT()
+    _ClipText = _ClipText + ALLT(FIELD(jjj))+[ ,]+IIF(MOD(jjj,8)=0,[;]+CHR(13)+CHR(10),[])
+  ENDFOR
+
+  PROCEDURE MakeFieldList2 &&--------------------------------------------------------------------
+  *// used only for dev to create string of fields for the current table    WITH  field type/sizes
+  _ClipText = []
+  FOR jjj = 1 TO FCOUNT()
+    _ClipText = _ClipText + ALLT(FIELD(jjj))+[ ]+TYPE(FIELD(jjj))+[(]+ALLT(STR(FSIZE(FIELD(jjj))))+[) ,]+IIF(MOD(jjj,6)=0,[;]+CHR(13)+CHR(10),[])
+  ENDFOR
+
+  PROCEDURE MakeDbfText &&---------------------------------------------------
+  *// creates and puts into clipboard a "CREAT DBF" string
+  zdbf = ALIAS()
+  CLOSE DATA ALL
+  SET SAFETY OFF
+  SELE LEFT(file_name,30) AS FILE,LEFT(field_name,30) AS field,type,width,decimals FROM savmdd2;
+    WHERE !"SAVM"$UPPE(file_name).and.(zdbf)$file_name INTO DBF zdd2 ORDER BY file,field
+  SELE zdd2
+  BROW
+  *USE IN zdd2
+  *RETURN
+
+  SELE zdd2  && data dict with fields
+  STORE 0 TO zddfcnt,zavmfcnt,zddfsiz,zavmfsiz
+  zzstr = [(]
+  SCAN   &&// scan and accum all data
+    zddfcnt = zddfcnt + 1
+    zddfsiz = zddfsiz + width
+    zzstr = zzstr + [ ]+ALLT(field)+[ ]+ALLT(type)+[(]+ALLT(STR(width));
+      +IIF(decimals>0,[,]+ALLT(STR(decimals)),[])+[),]+IIF(MOD(zddfcnt ,5)=0,[;]+CHR(13)+CHR(10),[])
+  ENDSCAN
+  ** create shells **************
+  zLen    = LEN(ALLT(zzstr))
+  zzstr   = LEFT(zzstr,zLen-1) + [)]
+  _ClipText = "CREATE DBF xxxxxx "+zzstr
+  CLOSE DATA
+
+  PROCEDURE GetLongNames &&----------------------------------------
+  CD C:\SPN\data
+  CREATE CURSOR tempdbfs (file C(25))
+  wtd = SYS(2000,[*.dbf])
+  IF LEN(wtd)>12
+    SELE tempdbfs
+    APPE BLANK
+    REPLA file WITH wtd
+  ENDIF
+  DO WHILE .T.
+    wtd = SYS(2000,[*.dbf],1)
+    IF LEN(wtd)<4
+      EXIT
+    ENDIF
+    IF LEN(wtd)>12
+      SELE tempdbfs
+      APPE BLANK
+      REPLA file WITH wtd
+    ENDIF
+  ENDDO
+  SELE tempdbfs
+  BROW
+
+
+  PROCEDURE SerialNumCheck &&----------------------------------------
+  CLOSE DATA
+  SELE 0
+  USE avpartss ORDER appnum
+  SELE 0
+  USE serparts
+  SET ORDER TO oh_p_s IN serparts
+  BROW
+  SCAN
+    *SELE avpartss
+    **SET ORDER TO oh_p_s IN serparts2
+    zitem = UPPE(serparts.pnum+serparts.pcat)
+    IF !SEEK(UPPE(serparts.pnum+serparts.pcat),[avpartss],[appnum])
+      zt = [ Part Number not found for serialized p# ]+serparts.pnum+[   ]+serparts.pserial
+      BROW TITLE zt TIME 10
+    ELSE
+      COUNT WHILE UPPE(serparts.pnum+serparts.pcat) = UPPE(avpartss.ppartnum+avpartss.cat) TO zqty
+      IF zqty # avpartss.pqoh
+        WAIT zitem +[    Serials ]+STR(zqty,4)+[     parts ]+STR(avpartss.pqoh,4)  WIND
+      ENDIF
+    ENDIF
+    SELE serparts
+  ENDSCAN
+  CLOSE DATA
+
+  PROCEDURE PopulateHelpFromDD2 &&----------------------------------------------------------------
+  RETURN
+  CLOSE DATA
+  SELE 0
+  USE savmdf3
+  SELE 0
+  USE savmdd2
+  SCAN FOR ![SAVM]$file_name
+    SELE savmdf3
+    LOCATE FOR savmdf3.file_name = savmdd2.file_name and savmdf3.field_name = savmdd2.field_name
+    IF !FOUND()
+      SELE savmdf3
+      APPE BLANK
+      REPLA file_name WITH savmdd2.file_name
+      REPLA field_name WITH savmdd2.field_name
+      REPLA f3_text    WITH [***]
+    ENDIF
+    SELE savmdd2
+  ENDSCAN
+  CLOSE DATA
+
+
+  FUNCTION FormOnTheFly  &&-----------------------------------------
+  lofrm=CREATEOBJECT("form")
+  lofrm.windowtype = 1
+  lofrm.addobject("label1","label")
+  lofrm.addobject("text1","textbox")
+  WITH lofrm
+    .label1.caption = "Hello"
+    .label1.left = 30
+    .top = 50
+    .left = 30
+    .label1.top = 50
+    .label1.visible = .t.
+    .text1.left = 100
+    .text1.top = 50
+    .text1.value = DATE()
+    .text1.visible = .t.
+  endwith
+  lofrm.Visible = .t.
+  lofrm.Show
+
+  PROCEDURE wopndalert &&-------------------------------------------------------
+  *=pwaitMB([WO PENDING ALERT  ]+UPPE(_pUserId))
+  *// WOTASKS PENDING INSPECTION called from main menu and
+  zAlias = ALIAS()
+  IF !configav.wopendwarn
+    RETURN
+  ENDIF
+  WAIT [CHECKING WO TASKS FOR PENDING INSPECTION ITEMS ...] WIND NOWAIT
+  SET SAFETY OFF
+  *SET TALK ON
+  SELECT wokey,strt_date,mod_eq,b_descrip,empsecid ;
+    FROM avwo_tsk;
+    WHERE [PENDING INSPECTION]$status;
+    INTO CURSOR woinspQry ORDER BY wokey
+  *SET TALK OFF
+  SET SAFETY ON
+  hwmany = _TALLY
+  WAIT [.] WIND TIME .1
+  USE IN avwo_tsk && because sql opens it
+  IF hwmany < 1
+    USE IN woinspQry
+    RETURN
+  ENDIF
+  SELE woinspQry
+DEFINE WINDOW woi FROM 1,1 TO 35,100 SHAD CLOSE FLOAT COLOR SCHEME 23
+BROWSE FIELDS ;
+  xxx=CleanKey(wokey):13:H=[WO-TASK],;
+  strt_date:12:H=[Started],;
+  mod_eq: 20:H=[Model],;
+  b_descrip: 30:H=[Descrip],;
+  empsecid: 8:H=[Empl];
+  WIND woi NODELETE NOMENU NOAPPEND NOEDIT TIME 120;
+  TITLE [ *ADVISORY*   WO TASK ITEMS DUE FOR INSPECTION     ESC:Exit] FONT &_PBrowfont
+USE IN woinspQry
+RELE WIND woi
+RETURN
+
+  PROCEDURE MakeTagList &&--------------------------------------------------------------------
+  *// used for the current table
+  _ClipText = DBF()+CHR(10)
+  FOR jjj = 1 TO 100
+    c1 = TAG(jjj)
+    IF EMPT(c1)
+      EXIT
+    ENDIF
+    _ClipText = _ClipText + [INDEX ON ]+SYS(14,jjj)+[  TAG ]+ALLT(PADR(TAG(jjj),12))+CHR(13)+CHR(10)
+  ENDFOR
+
+*!*	PROCEDURE HotKeyInvoices &&=======================================================
+*!*	WAIT IIF(WVISIBLE([frminvoices]),[Can See Invoices],[No Invoices in site]) WIND NOWAIT
+*!*	IF WVISIBLE('frminvoices')
+*!*	   ACTIVATE WINDOW frminvoices
+*!*	ELSE
+*!*	   DO FORM frminvoices
+*!*	ENDIF
+*!*	RETURN
+
+*!*	PROCEDURE HotKeyParts &&=======================================================
+*!*	IF WVISIBLE('frm_parts')
+*!*	   ACTIVATE WINDOW frm_parts
+*!*	ELSE
+*!*	   DO FORM frm_parts
+*!*	ENDIF
+*!*	RETURN
+
+*!*	Generating Text Files ********************************
+*!*	SET ALTERNATE TO Test.TXT
+*!*	USE Employee
+*!*	* Start logging
+*!*	SET ALTERNATE ON
+*!*	LIST First_Name,Last_Name
+*!*	* Stop logging
+*!*	SET ALTERNATE OFF
+*!*	LIST Birth_Date
+*!*	* Turn off log file
+*!*	SET ALTERNATE TO
+
+*!*	SET ALTERNATE TO test.txt
+*!*	SET ALTERNATE ON
+*!*	jnFieldCount=FCOUNT( )
+*!*	SCAN
+*!*	  FOR gnCount = 1 TO jnFieldCount
+*!*	    ? TRANSFORM(FIELD(gnCount))
+*!*	  NEXT
+*!*	ENDSCAN
+*!*	SET ALTERNATE OFF
+*!*	SET ALTERNATE TO
+

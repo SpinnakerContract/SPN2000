@@ -1,0 +1,31 @@
+*// Ex: DO dupcheck IN LWWPROCS WITH [pieces],[p_pcno]
+PARA ztable,zkey,zorder
+PRIV ztable,zkey,zorder
+IF PARA()<3
+  zorder = zkey
+ENDIF
+SELE &zkey AS _key, COUNT(*) AS _count ;
+FROM (ztable) GROUP BY _key HAVING _count > 1;
+ORDER BY &zorder
+
+USE IN (ztable)
+
+*!*	One of my favorite sql select calls of all time...
+*!*	*-- to identify the duplicates
+*!*	select <prime key>, count(*) ;
+*!*	from <table with dups> ;
+*!*	having count(*) > 1 ;
+*!*	order by 1 ;
+*!*	group by 1;
+*!*	into cursor dups
+*!*	*-- to get rid of dups [ which I have to do quite often at work ].
+*!*	**[[ MAKE BACKUP FIRST ]]**
+*!*	select 0
+*!*	use <table with dups> exclu alias tbldups
+*!*	delete all
+*!*	index on <prime_key> unique to arf
+*!*	go top
+*!*	recall all        && only recalls the unique prime keys - sorry cannot guess
+*!*	which one.
+*!*	pack            &&  permanently deletes the dups
+*!*	John C. Gunvaldson

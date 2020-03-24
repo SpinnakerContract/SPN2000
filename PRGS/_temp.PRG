@@ -1,0 +1,9 @@
+close data
+USE C:\SVM\data\words1 ORDER 1
+qqq=SECO()
+GO BOTT
+GO TOP
+GO BOTT
+GO TOP
+WAIT STR(SECO()-qqq,10,4) WIND
+CLOSE DATA
