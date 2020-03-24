@@ -1,0 +1,78 @@
+*** seeSmtpConnect
+<200:268490203>
+ VS Win32 Version 1.1.3 Build 1
+SEE Win32 Version 3.7.0 Build 38
+CTI                                               
+CID=8546
+<101:268490203>
+vSocket: 0 created
+<102:268490203>
+LocalHost = 'D8400'
+<104:268490203>
+Server = 'smtp.metrocast.net'
+ServerIP = 65.175.128.141
+<105:268490203>
+Socket=380, RemoteIP=41af808d, RemotePort=25
+<106:268490234>
+<201:268490265>
+R: 220 mx1.metrocast.net ESMTP
+<202:268490296>
+S: HELO tangoware.com
+<203:268490546>
+R: 250 mx1.metrocast.net
+*** seeSendEmail
+*** Sending...
+<204:268490546>
+S: MAIL FROM:<pete@tangoware.com>
+<205:268490578>
+R: 250 ok
+<206:268490578>
+<207:268490578>
+S: RCPT TO:<pete@tangoware.com>
+<208:268490578>
+R: 250 ok
+<209:268490609>
+S: DATA
+<210:268490640>
+R: 354 Please start mail input.
+<221:268490703>
+S: X-Mailer: MarshallSoft SMTP/POP3 Email Engine Version 3.7
+<222:268490703>
+S: X-OEM: CTI                                               
+<223:268490703>
+S: Date: Fri, 11 Mar 2005 12:24:03 -0500
+<224:268490703>
+S: To: Pedro<pete@tangoware.com>
+<225:268490734>
+S: From: Pedro<pete@tangoware.com>
+<226:268490734>
+S: Reply-To: Pedro<pete@tangoware.com>
+<227:268490734>
+S: Subject: SCMI EMAIL DOWN 12:24:02
+<228:268490734>
+<229:268490734>
+<233:268490734>
+S: 
+<238:268490734>
+<240:268490734>
+<241:268490734>
+S: This is a request for quotation from  Spinnaker Contract Manufacturing, Inc.
+S: 95 Business Park Drive,  Route 132 North, PO Box 276, Tilton, NH 03276
+S: Telephone: (603) 286-4366   Fax: (603) 286-7857   Email rfq@spinnakercontract.com
+S: 
+S: Please complete the attached  Excel Spreadsheet and return to SCMI
+S: 
+S: The SUBJECT LINE of your reply MUST start with SCMI-RFQ or else it will be rejected.
+S: 
+S: All replies MUST have the completed Excel XLS document attached using the same filename as sent
+S: Email Application was Shut Down
+<251:268490734>
+S: 
+.
+<252:268490765>
+R: 250 Mail queued for delivery.
+*** seeClose
+<258:268490765>
+S: QUIT
+vSocket: 0 closed
+*** Releasing channel 0 ***

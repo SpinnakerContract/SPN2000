@@ -1,0 +1,1 @@
+DO _send_email WITH "smtp.metrocast.net","Pete Ryder<pete@tangoware.com>","<sales@tangoware.com>","<pete@tangoware.com>",[Test 1],[Test 1 too],[],[]
